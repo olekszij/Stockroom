@@ -984,9 +984,11 @@ footer .footer-content {
    RESPONSIVE DESIGN (Tablets & Mobile Phones)
    ========================================================================== */
 
-/* Hamburger Button & Menu (Hidden on Desktop) */
+/* Hamburger Button & Menu (Hidden on Desktop, strictly visible only on mobile/tablet <= 768px) */
+#btn-hamburger,
+button.hamburger-btn,
 .hamburger-btn {
-  display: none;
+  display: none !important;
 }
 
 .menu-backdrop {
@@ -1001,8 +1003,10 @@ footer .footer-content {
   z-index: 45;
 }
 
-/* Small Screens (<= 768px): Hide all navigation in hamburger menu */
+/* Small Screens (<= 768px): Show hamburger button and hide horizontal navigation into drawer */
 @media (max-width: 768px) {
+  #btn-hamburger,
+  button.hamburger-btn,
   .hamburger-btn {
     display: inline-flex !important;
   }
