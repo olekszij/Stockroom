@@ -1569,8 +1569,57 @@
     let uiState = {
       activeTab: "formation",
       banner: null, // { type: 'danger'|'success'|'info', message: '' }
-      selectedCountLoc: "A-01"
+      selectedCountLoc: "A-01",
+      mobileMenuOpen: false
     };
+
+    function toggleMobileMenu() {
+      uiState.mobileMenuOpen = !uiState.mobileMenuOpen;
+      applyMobileMenuState();
+    }
+
+    function closeMobileMenu() {
+      if (uiState.mobileMenuOpen) {
+        uiState.mobileMenuOpen = false;
+        applyMobileMenuState();
+      }
+    }
+
+    function applyMobileMenuState() {
+      const navContainer = document.querySelector(".nav-bar-container");
+      const backdrop = document.getElementById("menu-backdrop");
+      const btn = document.getElementById("btn-hamburger");
+      const iconMenu = btn ? btn.querySelector(".icon-hamburger") : null;
+      const iconClose = btn ? btn.querySelector(".icon-close") : null;
+      const label = btn ? btn.querySelector(".hamburger-label") : null;
+
+      if (navContainer) {
+        if (uiState.mobileMenuOpen) {
+          navContainer.classList.add("menu-open");
+        } else {
+          navContainer.classList.remove("menu-open");
+        }
+      }
+
+      if (backdrop) {
+        if (uiState.mobileMenuOpen) {
+          backdrop.classList.add("menu-open");
+        } else {
+          backdrop.classList.remove("menu-open");
+        }
+      }
+
+      if (btn) {
+        btn.setAttribute("aria-expanded", String(uiState.mobileMenuOpen));
+        if (iconMenu && iconClose) {
+          iconMenu.style.display = uiState.mobileMenuOpen ? "none" : "inline-block";
+          iconClose.style.display = uiState.mobileMenuOpen ? "inline-block" : "none";
+        }
+        if (label) {
+          label.textContent = uiState.mobileMenuOpen ? "Fermer" : "Menu";
+        }
+      }
+    }
 
     function saveState() {
       try {
@@ -1639,12 +1688,24 @@
         return;
       }
 
+      if (action === "toggle-mobile-menu") {
+        toggleMobileMenu();
+        return;
+      }
+
+      if (action === "close-mobile-menu") {
+        closeMobileMenu();
+        return;
+      }
+
       if (action === "trigger-self-tests") {
+        closeMobileMenu();
         runSelfTests();
         return;
       }
 
       if (action === "nav-tab") {
+        closeMobileMenu();
         const tab = target.getAttribute("data-tab");
         if (tab) {
           clearBanner();
@@ -1832,6 +1893,20 @@
         saveState();
         renderApp();
         return;
+      }
+    });
+
+    // Close mobile menu on Escape key
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" && uiState.mobileMenuOpen) {
+        closeMobileMenu();
+      }
+    });
+
+    // Close mobile menu if resized to desktop viewport
+    window.addEventListener("resize", function() {
+      if (window.innerWidth > 768 && uiState.mobileMenuOpen) {
+        closeMobileMenu();
       }
     });
 

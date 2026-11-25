@@ -27,10 +27,15 @@
           <svg class="ui-icon" viewBox="0 0 24 24"><path d="M10 2v7.31L4.17 19.3A2 2 0 0 0 5.88 22h12.24a2 2 0 0 0 1.71-2.7L14 9.31V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
           <span class="hide-mobile">Tests</span>
         </button>
+        <button class="btn btn-secondary btn-sm hamburger-btn" id="btn-hamburger" data-action="toggle-mobile-menu" aria-label="Menu de navigation" aria-expanded="false" title="Menu">
+          <svg class="ui-icon icon-hamburger" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+          <svg class="ui-icon icon-close" style="display: none;" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          <span class="hamburger-label">Menu</span>
+        </button>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
+    <!-- Navigation Tabs (Dropdown drawer on small screens, horizontal bar on desktop) -->
     <div class="nav-bar-container">
       <nav class="nav-tabs" role="tablist" aria-label="Navigation principale">
         <button class="nav-tab-btn" role="tab" data-action="nav-tab" data-tab="formation" aria-controls="tab-content" aria-current="page">
@@ -63,6 +68,9 @@
       </nav>
     </div>
   </header>
+
+  <!-- Mobile Menu Backdrop -->
+  <div class="menu-backdrop" id="menu-backdrop" data-action="close-mobile-menu"></div>
 
   <!-- Main View Container -->
   <main class="app-container" id="app" role="main"></main>
