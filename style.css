@@ -729,14 +729,14 @@ input.input-number {
    ========================================================================== */
 .course-header {
   background-color: var(--pastel-yellow-subtle);
-  border: 2.5px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  padding: 24px;
-  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  padding: 12px 16px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .course-headline {

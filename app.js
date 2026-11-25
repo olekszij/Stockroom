@@ -1676,50 +1676,43 @@
       const isAllFinished = completedCount === totalLessons;
 
       return `
-        <div class="course-header" style="margin-bottom: 20px;">
-          <div class="course-headline">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <span class="badge badge-primary" style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px;">CURRICULUM OFFICIEL</span>
-                <span class="badge badge-neutral" style="font-size: 11px;">MICROSOFT DYNAMICS 365 SUPPLY CHAIN</span>
+        <div class="course-header">
+          <div class="course-headline" style="align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <h1 style="font-size: 16px; font-weight: 800; margin: 0; letter-spacing: -0.2px;">Formation Dynamics 365 WMS</h1>
+              <span class="badge badge-primary" style="font-size: 11px; font-weight: 800;">${completedCount} / ${totalLessons} validées (${percent}%)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="progress-bar-bg" style="width: 140px; height: 8px; border-radius: 4px; margin: 0;">
+                <div class="progress-bar-fill" style="width: ${percent}%; border-radius: 4px;"></div>
               </div>
-              <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.3px;">Académie WMS & Théorie Enterprise</h1>
-              <p style="color: var(--text-muted); font-size: 14.5px; line-height: 1.5; max-width: 900px;">
-                Ce programme d'ingénierie logistique enseigne les rouages profonds de <strong>Dynamics 365 SCM</strong> : architecture des données, réservation sur 7 dimensions, modélisation des travaux (Work Engine), directives d'emplacement et exécution radiofréquence.
-              </p>
+              <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11.5px;" data-action="reset-training" title="Recommencer la formation">
+                ${getIcon("refresh")} <span class="hide-mobile">Réinitialiser</span>
+              </button>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-              <span class="num" style="font-size: 18px; font-weight: 800; color: var(--primary);">${completedCount} / ${totalLessons} leçons validées</span>
-              <button class="btn btn-secondary btn-sm" data-action="reset-training">${getIcon("refresh")} Recommencer la formation</button>
-            </div>
-          </div>
-
-          <div class="progress-bar-bg" style="height: 12px; border-radius: 6px; margin: 12px 0 6px;">
-            <div class="progress-bar-fill" style="width: ${percent}%; border-radius: 5px;"></div>
           </div>
 
           ${isAllFinished ? `
-            <div class="alert-banner success" style="margin-top: 14px; margin-bottom: 0;">
+            <div class="alert-banner success" style="margin: 4px 0 0; padding: 8px 12px; font-size: 13px;">
               <div>
-                <strong>${getIcon("award")} Félicitations ! Vous avez validé l'intégralité du cycle Dynamics 365 WMS.</strong><br>
-                Vous maîtrisez les concepts fondamentaux d'architecture, les structures de données, la politique des directives et l'ensemble des flux entrants et sortants.
+                <strong>${getIcon("award")} Félicitations ! Toutes les leçons sont validées.</strong>
               </div>
             </div>
           ` : ''}
 
-          <!-- Training Navigation Sub-Tabs -->
-          <div class="training-subnav" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; border-top: 2px solid var(--border-color); padding-top: 14px;">
-            <button class="btn ${activeTheoryTab === 'lessons' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="lessons" style="font-weight: 700;">
-              ${getIcon("award")} 1. Leçons & Pratique (${totalLessons})
+          <!-- Training Navigation Sub-Tabs (Clean pill bar) -->
+          <div class="training-subnav" style="display: flex; flex-wrap: wrap; gap: 6px; border-top: 1.5px solid var(--border-color); padding-top: 8px;">
+            <button class="btn ${activeTheoryTab === 'lessons' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="lessons" style="font-weight: 700; font-size: 12px; padding: 5px 10px;">
+              ${getIcon("award")} Leçons & Pratique (${totalLessons})
             </button>
-            <button class="btn ${activeTheoryTab === 'architecture' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="architecture" style="font-weight: 700;">
-              ${getIcon("map")} 2. Architecture & Modèle D365
+            <button class="btn ${activeTheoryTab === 'architecture' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="architecture" style="font-weight: 700; font-size: 12px; padding: 5px 10px;">
+              ${getIcon("map")} Architecture D365
             </button>
-            <button class="btn ${activeTheoryTab === 'flows' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="flows" style="font-weight: 700;">
-              ${getIcon("target")} 3. Schémas des Flux d'Entrepôt
+            <button class="btn ${activeTheoryTab === 'flows' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="flows" style="font-weight: 700; font-size: 12px; padding: 5px 10px;">
+              ${getIcon("target")} Flux d'Entrepôt
             </button>
-            <button class="btn ${activeTheoryTab === 'glossary' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="glossary" style="font-weight: 700;">
-              ${getIcon("clipboard")} 4. Dictionnaire D365 (${D365_FULL_GLOSSARY.length} termes)
+            <button class="btn ${activeTheoryTab === 'glossary' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="glossary" style="font-weight: 700; font-size: 12px; padding: 5px 10px;">
+              ${getIcon("clipboard")} Dictionnaire (26)
             </button>
           </div>
         </div>
