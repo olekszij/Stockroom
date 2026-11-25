@@ -1661,8 +1661,9 @@
       `;
     }
 
-    // 1. Formation View
+// 1. Formation View
     function renderTrainingView(state, trainingState, uiState) {
+      const activeTheoryTab = uiState.trainingTheoryTab || "lessons"; // 'lessons', 'architecture', 'flows', 'glossary'
       const totalLessons = TRAINING_LESSONS.length;
       let completedCount = 0;
       TRAINING_LESSONS.forEach(l => {
@@ -1675,153 +1676,380 @@
       const isAllFinished = completedCount === totalLessons;
 
       return `
-        <div class="course-header">
+        <div class="course-header" style="margin-bottom: 20px;">
           <div class="course-headline">
             <div>
-              <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Formation Pratique WMS</h1>
-              <p style="color: var(--text-muted); font-size: 13px;">Apprenez le cycle complet de gestion d'entrepôt par la pratique directe dans le système.</p>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="badge badge-primary" style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px;">CURRICULUM OFFICIEL</span>
+                <span class="badge badge-neutral" style="font-size: 11px;">MICROSOFT DYNAMICS 365 SUPPLY CHAIN</span>
+              </div>
+              <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.3px;">Académie WMS & Théorie Enterprise</h1>
+              <p style="color: var(--text-muted); font-size: 14.5px; line-height: 1.5; max-width: 900px;">
+                Ce programme d'ingénierie logistique enseigne les rouages profonds de <strong>Dynamics 365 SCM</strong> : architecture des données, réservation sur 7 dimensions, modélisation des travaux (Work Engine), directives d'emplacement et exécution radiofréquence.
+              </p>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="num" style="font-size: 16px; font-weight: 700; color: var(--primary);">${completedCount} / ${totalLessons} leçons</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+              <span class="num" style="font-size: 18px; font-weight: 800; color: var(--primary);">${completedCount} / ${totalLessons} leçons validées</span>
               <button class="btn btn-secondary btn-sm" data-action="reset-training">${getIcon("refresh")} Recommencer la formation</button>
             </div>
           </div>
-          <div class="progress-bar-bg" style="height: 10px;">
-            <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+
+          <div class="progress-bar-bg" style="height: 12px; border-radius: 6px; margin: 12px 0 6px;">
+            <div class="progress-bar-fill" style="width: ${percent}%; border-radius: 5px;"></div>
           </div>
+
           ${isAllFinished ? `
-            <div class="alert-banner success" style="margin-bottom: 0;">
+            <div class="alert-banner success" style="margin-top: 14px; margin-bottom: 0;">
               <div>
-                <strong>${getIcon("award")} Félicitations ! Vous avez terminé toutes les leçons du cycle logistique.</strong><br>
-                Vous maîtrisez désormais les flux de réception, rangement, allocation, prélèvement, expédition, gestion de rupture et inventaire tournant.
+                <strong>${getIcon("award")} Félicitations ! Vous avez validé l'intégralité du cycle Dynamics 365 WMS.</strong><br>
+                Vous maîtrisez les concepts fondamentaux d'architecture, les structures de données, la politique des directives et l'ensemble des flux entrants et sortants.
               </div>
             </div>
           ` : ''}
+
+          <!-- Training Navigation Sub-Tabs -->
+          <div class="training-subnav" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; border-top: 2px solid var(--border-color); padding-top: 14px;">
+            <button class="btn ${activeTheoryTab === 'lessons' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="lessons" style="font-weight: 700;">
+              ${getIcon("award")} 1. Leçons & Pratique (${totalLessons})
+            </button>
+            <button class="btn ${activeTheoryTab === 'architecture' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="architecture" style="font-weight: 700;">
+              ${getIcon("map")} 2. Architecture & Modèle D365
+            </button>
+            <button class="btn ${activeTheoryTab === 'flows' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="flows" style="font-weight: 700;">
+              ${getIcon("target")} 3. Schémas des Flux d'Entrepôt
+            </button>
+            <button class="btn ${activeTheoryTab === 'glossary' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="training-subtab" data-subtab="glossary" style="font-weight: 700;">
+              ${getIcon("clipboard")} 4. Dictionnaire D365 (${D365_FULL_GLOSSARY.length} termes)
+            </button>
+          </div>
         </div>
 
-        <!-- D365 Theoretical Foundations & Lexique -->
-        <div class="card" style="margin-bottom: 20px; background-color: var(--pastel-blue-subtle);">
-          <div class="card-header" style="background-color: transparent; border-bottom: 1.5px solid var(--border-color);">
-            <span class="card-title">${getIcon("award")} Dictionnaire & Référentiel D365 Supply Chain Management</span>
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">${D365_FULL_GLOSSARY.length} termes officiels</span>
-          </div>
-          <div class="card-body">
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-              Ce simulateur utilise la terminologie et les concepts réels de <strong>Microsoft Dynamics 365 Supply Chain Management (WMS)</strong>. Voici les équivalences clés entre le français et les termes techniques D365 :
-            </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
-              ${D365_FULL_GLOSSARY.map(g => `
-                <div style="background-color: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <strong style="color: var(--primary-text);">${g.fr}</strong>
-                    <span class="badge badge-neutral" style="font-size: 10.5px; font-family: monospace;">${g.en}</span>
+        <!-- SUB-TAB 2: ARCHITECTURE & DATA MODEL -->
+        ${activeTheoryTab === 'architecture' ? `
+          <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px;">
+            <div class="card" style="background-color: var(--pastel-blue-subtle);">
+              <div class="card-header">
+                <span class="card-title">${getIcon("map")} Architecture Pyramidale & Objets Métier Dynamics 365</span>
+              </div>
+              <div class="card-body" style="font-size: 15px; line-height: 1.65;">
+                <p>
+                  Dans Microsoft Dynamics 365 Supply Chain Management, la gestion d'entrepôt n'est pas un système isolé : elle est <strong>entièrement unifiée avec les modules de comptabilité générale, de vente, d'approvisionnement et de planification</strong>. Voici comment s'organise l'arborescence des objets :
+                </p>
+
+                <div style="background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin: 16px 0; box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; flex-direction: column; gap: 12px; font-family: monospace; font-size: 14.5px;">
+                    <div style="padding: 10px 14px; background-color: #f1f5f9; border-left: 5px solid #0284c7; border-radius: 4px;">
+                      <strong style="color: #0369a1;">NIVEAU 1 : Entité juridique (Legal Entity / DataAreaId = 'FR01')</strong><br>
+                      <span style="color: var(--text-muted); font-size: 13px;">Société mère détentrice des comptes comptables, déclarations fiscales et référentiel clients/fournisseurs.</span>
+                    </div>
+                    <div style="padding: 10px 14px; background-color: #f8fafc; border-left: 5px solid #0ea5e9; border-radius: 4px; margin-left: 20px;">
+                      <strong style="color: #0284c7;">└── NIVEAU 2 : Site logistique (InventSite = 'SITE-01' Ivry-sur-Seine)</strong><br>
+                      <span style="color: var(--text-muted); font-size: 13px;">Campus régional fédérant un ensemble d'installations physiques.</span>
+                    </div>
+                    <div style="padding: 10px 14px; background-color: #f1f5f9; border-left: 5px solid #38bdf8; border-radius: 4px; margin-left: 40px;">
+                      <strong style="color: #0369a1;">    └── NIVEAU 3 : Entrepôt WMS (InventLocation = 'WH-MAIN')</strong><br>
+                      <span style="color: var(--text-muted); font-size: 13px;">Bâtiment couvert activé pour les processus avancés WMS (directives, vagues, terminaux RF).</span>
+                    </div>
+                    <div style="padding: 10px 14px; background-color: #f8fafc; border-left: 5px solid #10b981; border-radius: 4px; margin-left: 60px;">
+                      <strong style="color: #059669;">        └── NIVEAU 4 : Emplacement (WMSLocation = 'A-01-01', Profil: PROF-BULK)</strong><br>
+                      <span style="color: var(--text-muted); font-size: 13px;">Alvéole tridimensionnelle physique (Allée A, Rack 01, Hauteur 01). Contrôlé par volume et poids.</span>
+                    </div>
+                    <div style="padding: 10px 14px; background-color: #f1f5f9; border-left: 5px solid #f59e0b; border-radius: 4px; margin-left: 80px;">
+                      <strong style="color: #d97706;">            └── NIVEAU 5 : Plaque d'immatriculation (License Plate = 'LP-1001')</strong><br>
+                      <span style="color: var(--text-muted); font-size: 13px;">Identifiant unitaire de contenant (palette/bac) hébergeant les articles, lots et quantités.</span>
+                    </div>
                   </div>
-                  <div style="color: var(--text-muted); font-size: 11px; line-height: 1.35;">${g.def}</div>
                 </div>
-              `).join('')}
+
+                <h3 style="font-size: 16px; font-weight: 800; margin: 20px 0 10px;">Les 7 Dimensions Clés du Stock On-hand</h3>
+                <p>
+                  Dans la base SQL sous-jacente de D365 (tables <code>InventSum</code> et <code>InventDim</code>), il est rigoureusement impossible d'avoir une quantité orpheline. Chaque unité stockée est l'intersection exacte de 7 dimensions obligatoires :
+                </p>
+                <div class="table-container" style="margin-top: 10px;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Catégorie de dimension</th>
+                        <th>Nom de la dimension</th>
+                        <th>Code D365</th>
+                        <th>Rôle logistique & Impact</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Identification Produit</strong></td>
+                        <td>Numéro d'article (SKU)</td>
+                        <td><code>ItemId</code></td>
+                        <td>Désigne le produit standardisé (ex: CAF-1KG, THE-VERT, CHO-500).</td>
+                      </tr>
+                      <tr>
+                        <td rowspan="4"><strong>Dimensions de Stockage</strong></td>
+                        <td>Site</td>
+                        <td><code>InventSiteId</code></td>
+                        <td>Centre géographique où se trouve le stock.</td>
+                      </tr>
+                      <tr>
+                        <td>Entrepôt</td>
+                        <td><code>InventLocationId</code></td>
+                        <td>Bâtiment logistique abritant le stock.</td>
+                      </tr>
+                      <tr>
+                        <td>Emplacement</td>
+                        <td><code>wmsLocationId</code></td>
+                        <td>Alvéole de stockage physique.</td>
+                      </tr>
+                      <tr>
+                        <td>Plaque (License Plate)</td>
+                        <td><code>LicensePlateId</code></td>
+                        <td>Numéro unitaire de palette ou contenant pour les déplacements par lot.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Dimension de Suivi</strong></td>
+                        <td>Numéro de lot & DLUO</td>
+                        <td><code>InventBatchId</code></td>
+                        <td>Traçabilité sanitaire garantissant la sortie chronologique par péremption (FEFO).</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Dimension Qualité</strong></td>
+                        <td>Statut d'inventaire</td>
+                        <td><code>InventStatusId</code></td>
+                        <td>Gouverne l'allouabilité : Disponible (réservable), Bloqué ou Quarantaine.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ` : ''}
 
-        <div class="lessons-list">
-          ${TRAINING_LESSONS.map((lesson, idx) => {
-            const isMissionDone = !!trainingState.completedMissions[lesson.id];
-            const qState = trainingState.answeredQuestions[lesson.id];
-            const isQuizDone = qState && qState.isCorrect;
-            const isLessonDone = isMissionDone && isQuizDone;
-            const isExpanded = trainingState.activeLessonId === lesson.id;
-
-            return `
-              <div class="lesson-card ${isLessonDone ? 'completed' : ''} ${isExpanded ? 'active' : ''}">
-                <button class="lesson-toggle-btn" data-action="toggle-lesson" data-lesson-id="${lesson.id}" aria-expanded="${isExpanded}">
-                  <div class="lesson-title-wrap">
-                    <div class="lesson-num">${isLessonDone ? getIcon('check') : (idx + 1)}</div>
-                    <div>
-                      <div class="lesson-title-text">${lesson.title}</div>
-                      <div style="font-size: 12px; color: var(--text-muted);">
-                        Mission : ${isMissionDone ? 'Terminée' : 'À réaliser'} • Quiz : ${isQuizDone ? 'Réussi' : 'En attente'}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    ${isLessonDone ? '<span class="badge badge-success">Terminée</span>' : (isExpanded ? '<span class="badge badge-primary">En cours</span>' : '<span class="badge badge-neutral">Détails</span>')}
-                  </div>
-                </button>
-
-                ${isExpanded ? `
-                  <div class="lesson-content">
-                    <div class="concept-box">
-                      <strong style="color: var(--primary-text); font-size: 12px; text-transform: uppercase;">1. Comprendre le concept</strong>
-                      <p style="margin-top: 6px;">${lesson.concept}</p>
-                    </div>
-
-                    <div>
-                      <div style="font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Glossaire essentiel</div>
-                      <div class="glossary-grid">
-                        ${lesson.glossary.map(g => `
-                          <div class="glossary-term">
-                            <strong>${g.term}</strong>
-                            <span>${g.def}</span>
-                          </div>
-                        `).join('')}
-                      </div>
-                    </div>
-
-                    <div class="mission-box">
-                      <div class="mission-status-head">
-                        <strong style="font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                          ${getIcon("target")} Mission pratique
-                        </strong>
-                        ${isMissionDone 
-                          ? `<span class="badge badge-success">${getIcon('check')} Mission accomplie</span>` 
-                          : `<span class="badge badge-warning">${getIcon('clock')} En attente d'action</span>`}
-                      </div>
-                      <p style="font-size: 13px;">${lesson.missionText}</p>
-                      <div>
-                        <button class="btn btn-primary btn-sm" data-action="nav-tab" data-tab="${lesson.targetTab}">
-                          Aller sur l'écran « ${getTabLabel(lesson.targetTab)} » →
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="quiz-box">
-                      <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">${getIcon("help")} Question de validation</div>
-                      <p style="font-size: 13px; color: var(--text-main);">${lesson.question}</p>
-                      
-                      <div class="quiz-options">
-                        ${lesson.options.map((opt, oIdx) => {
-                          const isSelected = qState && qState.selectedIndex === oIdx;
-                          return `
-                            <label class="quiz-option-label" style="${isSelected ? (qState.isCorrect ? 'border-color: var(--success); background-color: var(--success-subtle);' : 'border-color: var(--danger); background-color: var(--danger-subtle);') : ''}">
-                              <input type="radio" name="quiz-${lesson.id}" value="${oIdx}" data-action="select-quiz-option" data-lesson-id="${lesson.id}" ${isSelected ? 'checked' : ''}>
-                              <span>${opt}</span>
-                            </label>
-                          `;
-                        }).join('')}
-                      </div>
-
-                      ${qState ? `
-                        <div class="quiz-feedback" style="background-color: ${qState.isCorrect ? 'var(--success-subtle)' : 'var(--danger-subtle)'}; color: ${qState.isCorrect ? 'var(--success-text)' : 'var(--danger-text)'};">
-                          <strong>${qState.isCorrect ? 'Excellente réponse !' : 'Réponse incorrecte.'}</strong>
-                          <div style="margin-top: 4px;">${lesson.explanation}</div>
-                          ${!qState.isCorrect ? `
-                            <div style="margin-top: 6px;">
-                              <button class="btn btn-secondary btn-sm" data-action="retry-quiz" data-lesson-id="${lesson.id}">Réessayer</button>
-                            </div>
-                          ` : ''}
-                        </div>
-                      ` : ''}
-                    </div>
-                  </div>
-                ` : ''}
+        <!-- SUB-TAB 3: WMS FLOWS SCHEMAS -->
+        ${activeTheoryTab === 'flows' ? `
+          <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px;">
+            <!-- Flux Inbound -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">${getIcon("reception")} Flux Entrant D365 (Inbound Flow : Commande Fournisseur → Rangement)</span>
               </div>
-            `;
-          }).join('')}
-        </div>
+              <div class="card-body" style="font-size: 15px; line-height: 1.65;">
+                <div style="background-color: var(--bg-surface-subtle); border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin-bottom: 16px;">
+                  <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1; min-width: 180px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #0369a1; display: block; font-size: 14px;">1. PO Fournisseur</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Purchase Order émis</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 180px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #059669; display: block; font-size: 14px;">2. Enregistrement Quai</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Quai RECEPTION + Génération LP</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 180px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #d97706; display: block; font-size: 14px;">3. Directives d'emplacement</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Résolution séquentielle (10, 20)</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 180px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #7c3aed; display: block; font-size: 14px;">4. Travail WT-PO-PUT</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Pick quai → Put en réserve</span>
+                    </div>
+                  </div>
+                </div>
+                <p>
+                  <strong>Détail des transactions internes</strong> : Lorsqu'un cariste valide la décharge, le stock passe d'abord au statut physique 'Arrivé' sur l'emplacement quai. Le modèle de travail <code>WT-PO-PUT</code> bloque la palette jusqu'à ce que la ligne <strong>Pick</strong> (prise au quai) et la ligne <strong>Put</strong> (dépose en alvéole finale de réserve <code>A-01-01</code>) soient intégralement clôturées.
+                </p>
+              </div>
+            </div>
+
+            <!-- Flux Outbound -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">${getIcon("expedition")} Flux Sortant D365 (Outbound Flow : Commande Client → Ship Confirm)</span>
+              </div>
+              <div class="card-body" style="font-size: 15px; line-height: 1.65;">
+                <div style="background-color: var(--bg-surface-subtle); border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin-bottom: 16px;">
+                  <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1; min-width: 160px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #0369a1; display: block; font-size: 14px;">1. Sales Order</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Commande client</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 160px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #059669; display: block; font-size: 14px;">2. Vague (Wave)</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Regroupement d'expéditions</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 160px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #d97706; display: block; font-size: 14px;">3. Wave Execution</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Allocation FEFO & Travaux</span>
+                    </div>
+                    <span style="font-weight: 800; font-size: 18px;">→</span>
+                    <div style="flex: 1; min-width: 160px; background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+                      <strong style="color: #7c3aed; display: block; font-size: 14px;">4. Ship Confirm</strong>
+                      <span style="font-size: 12px; color: var(--text-muted);">Sortie On-hand & Packing Slip</span>
+                    </div>
+                  </div>
+                </div>
+                <p>
+                  <strong>Traitement par lots et optimisation des tournées</strong> : L'intérêt d'une vague est d'agréger les besoins de dizaines de commandes clients. Plutôt que de visiter 5 fois l'allée A pour 5 clients différents, le WMS alloue les stocks au plus tôt (FEFO), consolide les prélèvements et guide le préparateur sur le chemin le plus court vers le quai d'expédition <code>EXPEDITION</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- SUB-TAB 4: FULL GLOSSARY -->
+        ${activeTheoryTab === 'glossary' ? `
+          <div class="card" style="margin-bottom: 24px; background-color: var(--pastel-blue-subtle);">
+            <div class="card-header" style="background-color: transparent; border-bottom: 2px solid var(--border-color);">
+              <span class="card-title">${getIcon("clipboard")} Référentiel Bilingue Officiel Dynamics 365 Supply Chain Management</span>
+              <span style="font-size: 13px; color: var(--text-muted); font-weight: 800;">${D365_FULL_GLOSSARY.length} termes certifiés</span>
+            </div>
+            <div class="card-body">
+              <p style="font-size: 14.5px; color: var(--text-main); margin-bottom: 16px; line-height: 1.6;">
+                Voici le lexique technique exhaustif utilisé par les architectes de solutions, consultants et chefs d'exploitation Dynamics 365. Chaque concept est présenté avec sa terminologie officielle en français et son équivalent technique Microsoft en anglais :
+              </p>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+                ${D365_FULL_GLOSSARY.map(g => `
+                  <div style="background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; box-shadow: var(--shadow-sm);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px;">
+                      <strong style="color: #0c4a6e; font-size: 15px;">${g.fr}</strong>
+                      <span class="badge badge-neutral" style="font-size: 11px; font-family: monospace; white-space: nowrap;">${g.en}</span>
+                    </div>
+                    <div style="color: var(--text-main); font-size: 13.5px; line-height: 1.5;">${g.def}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- SUB-TAB 1: LESSONS & PRACTICE -->
+        ${activeTheoryTab === 'lessons' ? `
+          <div class="lessons-list">
+            ${TRAINING_LESSONS.map((lesson, idx) => {
+              const isMissionDone = !!trainingState.completedMissions[lesson.id];
+              const qState = trainingState.answeredQuestions[lesson.id];
+              const isQuizDone = qState && qState.isCorrect;
+              const isLessonDone = isMissionDone && isQuizDone;
+              const isExpanded = trainingState.activeLessonId === lesson.id;
+
+              return `
+                <div class="lesson-card ${isLessonDone ? 'completed' : ''} ${isExpanded ? 'active' : ''}">
+                  <button class="lesson-toggle-btn" data-action="toggle-lesson" data-lesson-id="${lesson.id}" aria-expanded="${isExpanded}">
+                    <div class="lesson-title-wrap">
+                      <div class="lesson-num">${isLessonDone ? getIcon('check') : (idx + 1)}</div>
+                      <div>
+                        <div class="lesson-title-text">${lesson.title}</div>
+                        ${lesson.subtitle ? `<div style="font-size: 13px; color: var(--text-muted); font-weight: 500; margin-top: 2px;">${lesson.subtitle}</div>` : ''}
+                        <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px;">
+                          Mission pratique : ${isMissionDone ? '<strong style="color: var(--success-text);">Terminée</strong>' : 'À réaliser'} • Quiz : ${isQuizDone ? '<strong style="color: var(--success-text);">Réussi</strong>' : 'En attente'}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      ${isLessonDone ? '<span class="badge badge-success">Validée</span>' : (isExpanded ? '<span class="badge badge-primary">En cours</span>' : '<span class="badge badge-neutral">Explorer</span>')}
+                    </div>
+                  </button>
+
+                  ${isExpanded ? `
+                    <div class="lesson-content">
+                      <!-- Theoretical Foundations Section -->
+                      <div class="concept-box">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 8px;">
+                          <span class="badge badge-primary" style="font-size: 11px; font-weight: 800;">FONDEMENTS THÉORIQUES D365</span>
+                          <span style="font-weight: 700; font-size: 14px; text-transform: uppercase; color: var(--primary-text);">1. Comprendre le concept en profondeur</span>
+                        </div>
+                        
+                        <p style="font-size: 16px; line-height: 1.7; margin-bottom: 16px; font-weight: 500;">
+                          ${typeof lesson.concept === 'object' ? lesson.concept.intro : lesson.concept}
+                        </p>
+
+                        ${typeof lesson.concept === 'object' && Array.isArray(lesson.concept.sections) ? lesson.concept.sections.map(sec => `
+                          <div style="background-color: var(--bg-surface-subtle); border-left: 4px solid var(--primary); padding: 14px 18px; margin-bottom: 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                            <h4 style="font-size: 15px; font-weight: 800; color: #0c4a6e; margin-bottom: 8px;">${sec.title}</h4>
+                            <div style="font-size: 15px; line-height: 1.7; color: var(--text-main);">
+                              ${sec.content}
+                            </div>
+                          </div>
+                        `).join('') : ''}
+                      </div>
+
+                      <!-- Essential Glossary -->
+                      <div>
+                        <div style="font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                          ${getIcon("award")} Termes clés associés
+                        </div>
+                        <div class="glossary-grid">
+                          ${lesson.glossary.map(g => `
+                            <div class="glossary-term">
+                              <strong>${g.term}</strong>
+                              <span>${g.def}</span>
+                            </div>
+                          `).join('')}
+                        </div>
+                      </div>
+
+                      <!-- Practical Mission Box -->
+                      <div class="mission-box">
+                        <div class="mission-status-head">
+                          <strong style="font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            ${getIcon("target")} 2. Mission pratique sur le système
+                          </strong>
+                          ${isMissionDone 
+                            ? `<span class="badge badge-success">${getIcon('check')} Mission accomplie</span>` 
+                            : `<span class="badge badge-warning">${getIcon('clock')} En attente d'action</span>`}
+                        </div>
+                        <p style="font-size: 15px; line-height: 1.6; margin: 10px 0 14px;">${lesson.missionText}</p>
+                        <div>
+                          <button class="btn btn-primary btn-sm" data-action="nav-tab" data-tab="${lesson.targetTab}">
+                            Aller sur l'écran « ${getTabLabel(lesson.targetTab)} » →
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Quiz Validation Box -->
+                      <div class="quiz-box">
+                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                          ${getIcon("help")} 3. Question de validation théorique
+                        </div>
+                        <p style="font-size: 15px; color: var(--text-main); font-weight: 600; margin-bottom: 12px;">${lesson.question}</p>
+                        
+                        <div class="quiz-options">
+                          ${lesson.options.map((opt, oIdx) => {
+                            const isSelected = qState && qState.selectedIndex === oIdx;
+                            return `
+                              <label class="quiz-option-label" style="${isSelected ? (qState.isCorrect ? 'border-color: var(--success); background-color: var(--success-subtle);' : 'border-color: var(--danger); background-color: var(--danger-subtle);') : ''}">
+                                <input type="radio" name="quiz-${lesson.id}" value="${oIdx}" data-action="select-quiz-option" data-lesson-id="${lesson.id}" ${isSelected ? 'checked' : ''}>
+                                <span style="font-size: 14.5px;">${opt}</span>
+                              </label>
+                            `;
+                          }).join('')}
+                        </div>
+
+                        ${qState ? `
+                          <div class="quiz-feedback" style="background-color: ${qState.isCorrect ? 'var(--success-subtle)' : 'var(--danger-subtle)'}; color: ${qState.isCorrect ? 'var(--success-text)' : 'var(--danger-text)'}; padding: 14px 18px; margin-top: 14px;">
+                            <strong style="font-size: 15px;">${qState.isCorrect ? 'Excellente réponse !' : 'Réponse incorrecte.'}</strong>
+                            <div style="margin-top: 6px; font-size: 14px; line-height: 1.6;">${lesson.explanation}</div>
+                            ${!qState.isCorrect ? `
+                              <div style="margin-top: 10px;">
+                                <button class="btn btn-secondary btn-sm" data-action="retry-quiz" data-lesson-id="${lesson.id}">Réessayer la question</button>
+                              </div>
+                            ` : ''}
+                          </div>
+                        ` : ''}
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
       `;
     }
 
-    function getTabLabel(tabKey) {
+        function getTabLabel(tabKey) {
       switch (tabKey) {
         case "formation": return "Formation";
         case "dashboard": return "Tableau de bord";
