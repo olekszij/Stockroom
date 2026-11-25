@@ -854,12 +854,6 @@ input.input-number {
   font-weight: 800;
   margin-bottom: 4px;
 }
-  color: #0c4a6e;
-  display: block;
-  font-size: 13.5px;
-  font-weight: 800;
-  margin-bottom: 3px;
-}
 
 .mission-box {
   border: 2px solid var(--border-color);
