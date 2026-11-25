@@ -136,6 +136,41 @@
         { id: "WT-SO-PICK", name: "Prélèvement Expédition Vente", orderType: "SO", steps: ["Pick", "Put"] },
         { id: "WT-REPLEN", name: "Réapprovisionnement Picking", orderType: "REPLEN", steps: ["Pick", "Put"] }
       ],
+      locationDirectives: [
+        {
+          id: "DIR-PUT-01",
+          sequence: 10,
+          name: "Rangement Palettes Masse (BULK)",
+          workType: "Put",
+          orderType: "PO",
+          warehouse: "WH-MAIN",
+          targetZone: "ZONE-BULK",
+          strategy: "ConsolidateEmpty",
+          description: "Directive 10, ligne 1 : Rangement en zone BULK (Consolidation SKU + Espace libre)"
+        },
+        {
+          id: "DIR-PUT-02",
+          sequence: 20,
+          name: "Rangement Picking Dynamique (PICK)",
+          workType: "Put",
+          orderType: "PO",
+          warehouse: "WH-MAIN",
+          targetZone: "ZONE-PICK",
+          strategy: "ConsolidateEmpty",
+          description: "Directive 20, ligne 1 : Rangement en zone PICK (Alvéoles)"
+        },
+        {
+          id: "DIR-PICK-01",
+          sequence: 10,
+          name: "Prélèvement Vente Zone Stockage (FEFO)",
+          workType: "Pick",
+          orderType: "SO",
+          warehouse: "WH-MAIN",
+          targetZone: "ZONE-STORAGE",
+          strategy: "FEFO",
+          description: "Directive 10, ligne 1 : Prélèvement zone STORAGE selon règle FEFO"
+        }
+      ],
       works: [],
       tasks: [], // WorkTask legacy bridge
       movementLogs: [
@@ -212,6 +247,7 @@
           to: item.transit || "STAGE",
           licensePlate: item.licensePlate,
           batch: item.batch || null,
+          directive: item.directive || null,
           status: "Open" // Open | Closed
         });
         // Line 2: Put
@@ -224,6 +260,7 @@
           to: item.to || "",
           licensePlate: item.licensePlate,
           batch: item.batch || null,
+          directive: item.directive || null,
           status: "Open" // Open | Closed
         });
       });
@@ -436,16 +473,35 @@
       return Math.max(0, loc.capacity - currentUsed);
     }
 
-    // Putaway Plan pure function
-    // Candidate locations: same zone as item, non-dock.
-    // Sort: locations already holding this sku first, then by most free space.
-    // Split quantity across locations. If space runs out, create task with empty destination.
+    // D365 Location Directive Engine: finds matching directive by orderType, workType, warehouse, and sequence
+    function findLocationDirective(state, orderType, workType, warehouse = "WH-MAIN", itemZone = null) {
+      const directives = (state.locationDirectives || [])
+        .filter(d => d.orderType === orderType && d.workType === workType && (d.warehouse === warehouse || d.warehouse === "ALL"))
+        .sort((a, b) => a.sequence - b.sequence);
+
+      if (directives.length === 0) return null;
+
+      if (itemZone) {
+        const zoneMatch = directives.find(d => d.targetZone === itemZone || d.targetZone === "ZONE-STORAGE" || d.targetZone === "ALL");
+        if (zoneMatch) return zoneMatch;
+      }
+      return directives[0];
+    }
+
+    // Putaway Plan pure function driven by D365 Location Directives
     function planPutaway(state, sku, qty, poId, options = {}) {
       const item = state.items.find(i => i.sku === sku);
       if (!item) return [];
 
       const targetWh = options.warehouse || "WH-MAIN";
-      const candidates = state.locations.filter(l => !l.isDock && l.warehouse === targetWh && l.zone === item.zone);
+      const directive = findLocationDirective(state, "PO", "Put", targetWh, item.zone) || {
+        sequence: 10,
+        targetZone: item.zone,
+        description: `Directive par défaut : zone ${item.zone}`
+      };
+
+      const targetZone = directive.targetZone === "ALL" ? item.zone : directive.targetZone;
+      const candidates = state.locations.filter(l => !l.isDock && l.warehouse === targetWh && (l.zone === targetZone || targetZone === "ZONE-STORAGE"));
       
       const scored = candidates.map(loc => {
         const skuQtyInLoc = state.stock
@@ -470,6 +526,7 @@
       const newTasks = [];
       let remaining = qty;
       const lp = options.licensePlate || generateLicensePlate();
+      const directiveDesc = directive.description || `Directive ${directive.sequence}, ligne 1 : zone ${targetZone}`;
 
       for (const cand of scored) {
         if (remaining <= 0) break;
@@ -485,13 +542,13 @@
           from: "RECEPTION",
           to: cand.code,
           ref: poId,
+          directive: directiveDesc,
           done: false
         });
         remaining -= take;
         cand.freeSpace -= take;
       }
 
-      // If space runs out in candidate locations, create task with empty destination
       if (remaining > 0) {
         newTasks.push({
           id: generateTaskId(),
@@ -502,6 +559,7 @@
           from: "RECEPTION",
           to: "",
           ref: poId,
+          directive: `${directiveDesc} (Capacité saturée)`,
           done: false
         });
       }
@@ -551,7 +609,8 @@
           from: "RECEPTION",
           to: t.to,
           licensePlate: t.licensePlate,
-          batch: batch
+          batch: batch,
+          directive: t.directive
         }));
         createWorkOrder(state, "PO", po.id, "WT-PO-PUT", linesData, po.warehouse || "WH-MAIN");
       }
@@ -637,6 +696,10 @@
 
       so.shortages = {};
       const wh = so.warehouse || "WH-MAIN";
+      const pickDirective = findLocationDirective(state, "SO", "Pick", wh) || {
+        sequence: 10,
+        description: "Directive 10, ligne 1 : zone STORAGE, FEFO"
+      };
 
       for (const line of so.lines) {
         let needed = line.qty;
@@ -686,6 +749,7 @@
             from: cand.code,
             to: "EXPEDITION",
             ref: so.id,
+            directive: pickDirective.description || "Directive 10, ligne 1 : zone STORAGE, FEFO",
             done: false
           });
           needed -= take;
@@ -705,7 +769,8 @@
           from: t.from,
           to: "EXPEDITION",
           licensePlate: t.licensePlate,
-          batch: t.batch
+          batch: t.batch,
+          directive: t.directive
         }));
         createWorkOrder(state, "SO", so.id, "WT-SO-PICK", linesData, wh);
       }
@@ -1836,6 +1901,11 @@
                                   <td>
                                     <strong>${line.sku}</strong>
                                     <span style="font-size: 11px; color: var(--text-muted); margin-left: 4px;">${it ? it.name : ''}</span>
+                                    ${line.directive ? `
+                                      <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                                        ${getIcon("target")} <span style="font-style: italic;">${line.directive}</span>
+                                      </div>
+                                    ` : ''}
                                   </td>
                                   <td class="num" style="text-align: right; font-weight: 800;">${line.qty}</td>
                                   <td><span class="badge badge-lp">${line.licensePlate || 'N/A'}</span></td>
@@ -2138,6 +2208,190 @@
       `;
     }
 
+    // 7. Configuration View (D365 Setup: Location Directives, Profiles, Zones, Work Templates)
+    function renderConfigView(state, uiState) {
+      const activeTab = (uiState && uiState.configSubTab) || "directives";
+
+      return `
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">${getIcon("settings")} Configuration Entrepôt WMS (D365 SCM Setup)</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+              Configurez le paramétrage logistique de Dynamics 365 : les <strong>Directives d'emplacement (Location Directives)</strong> dictent où ranger ou prélever la marchandise, tandis que les <strong>Profils</strong> et <strong>Zones</strong> encadrent les capacités et contraintes physiques.
+            </p>
+
+            <div style="display: flex; flex-wrap: gap; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">
+              <button class="btn ${activeTab === 'directives' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="config-subtab" data-subtab="directives">
+                Directives d'emplacement (${(state.locationDirectives || []).length})
+              </button>
+              <button class="btn ${activeTab === 'templates' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="config-subtab" data-subtab="templates">
+                Modèles de travail (${(state.workTemplates || []).length})
+              </button>
+              <button class="btn ${activeTab === 'profiles' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="config-subtab" data-subtab="profiles">
+                Profils d'emplacement (${D365_SETUP.locationProfiles.length})
+              </button>
+              <button class="btn ${activeTab === 'zones' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="config-subtab" data-subtab="zones">
+                Zones & Groupes (${D365_SETUP.zones.length})
+              </button>
+            </div>
+
+            ${activeTab === 'directives' ? `
+              <div>
+                <div style="margin-bottom: 12px;">
+                  <h3 style="font-size: 14px; font-weight: 800; text-transform: uppercase;">Directives d'emplacement (Location Directives)</h3>
+                  <div style="font-size: 12px; color: var(--text-muted);">
+                    Règles exécutées par ordre de séquence croissante. Vous pouvez modifier la priorité (Monter/Descendre) pour changer où va le rangement !
+                  </div>
+                </div>
+
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 70px;">Séquence</th>
+                        <th style="width: 100px;">ID</th>
+                        <th>Nom de la directive</th>
+                        <th style="width: 90px;">Type</th>
+                        <th style="width: 90px;">Flux</th>
+                        <th>Zone cible</th>
+                        <th>Stratégie</th>
+                        <th>Explication générée</th>
+                        <th style="text-align: right; width: 140px;">Priorité</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${(state.locationDirectives || []).sort((a, b) => a.sequence - b.sequence).map((d, dIdx, arr) => `
+                        <tr>
+                          <td class="num" style="font-weight: 900; font-size: 13px; color: var(--primary);">${d.sequence}</td>
+                          <td><strong>${d.id}</strong></td>
+                          <td>${d.name}</td>
+                          <td><span class="badge ${d.workType === 'Put' ? 'badge-type-put' : 'badge-type-pick'}">${d.workType}</span></td>
+                          <td><span class="badge badge-neutral">${d.orderType}</span></td>
+                          <td><span class="badge badge-primary">${d.targetZone}</span></td>
+                          <td style="font-size: 11px; font-weight: 600;">${d.strategy}</td>
+                          <td style="font-size: 11px; color: var(--text-muted); font-style: italic;">${d.description}</td>
+                          <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 4px;">
+                              <button class="btn btn-secondary btn-sm" 
+                                      style="padding: 2px 6px; font-size: 10px;"
+                                      data-action="move-directive-up" 
+                                      data-directive-id="${d.id}"
+                                      ${dIdx === 0 ? 'disabled' : ''}
+                                      title="Augmenter la priorité">
+                                ▲ Haut
+                              </button>
+                              <button class="btn btn-secondary btn-sm" 
+                                      style="padding: 2px 6px; font-size: 10px;"
+                                      data-action="move-directive-down" 
+                                      data-directive-id="${d.id}"
+                                      ${dIdx === arr.length - 1 ? 'disabled' : ''}
+                                      title="Diminuer la priorité">
+                                ▼ Bas
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+
+            ${activeTab === 'templates' ? `
+              <div>
+                <h3 style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px;">Modèles de travail (Work Templates)</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID Modèle</th>
+                        <th>Nom du modèle</th>
+                        <th>Type d'ordre</th>
+                        <th>Étapes configurées</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${(state.workTemplates || []).map(wt => `
+                        <tr>
+                          <td><strong>${wt.id}</strong></td>
+                          <td>${wt.name}</td>
+                          <td><span class="badge badge-neutral">${wt.orderType}</span></td>
+                          <td>
+                            ${wt.steps.map(s => `<span class="badge ${s === 'Pick' ? 'badge-type-pick' : 'badge-type-put'}" style="margin-right: 4px;">${s}</span>`).join(' → ')}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+
+            ${activeTab === 'profiles' ? `
+              <div>
+                <h3 style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px;">Profils d'emplacement (Location Profiles)</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID Profil</th>
+                        <th>Désignation</th>
+                        <th>Articles mélangés</th>
+                        <th>Plaque LP requise</th>
+                        <th>Méthode de capacité</th>
+                        <th style="text-align: right;">Capacité max</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${D365_SETUP.locationProfiles.map(lp => `
+                        <tr>
+                          <td><strong>${lp.id}</strong></td>
+                          <td>${lp.name}</td>
+                          <td>${lp.allowMixedItems ? '<span class="badge badge-success">Oui</span>' : '<span class="badge badge-warning">Non</span>'}</td>
+                          <td>${lp.requireLP ? '<span class="badge badge-primary">Oui (LP)</span>' : '<span class="badge badge-neutral">Non</span>'}</td>
+                          <td>${lp.capacityType}</td>
+                          <td class="num" style="text-align: right; font-weight: 700;">${lp.maxCapacity || 'Illimité'}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+
+            ${activeTab === 'zones' ? `
+              <div>
+                <h3 style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px;">Zones et Groupes de zones</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Code Zone</th>
+                        <th>Nom de la zone</th>
+                        <th>Groupe de zones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${D365_SETUP.zones.map(z => `
+                        <tr>
+                          <td><strong>${z.id}</strong></td>
+                          <td>${z.name}</td>
+                          <td><span class="badge badge-neutral">${z.group}</span></td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
     // Main App Renderer
     function renderApp() {
       // Preserve active input focus & cursor if possible
@@ -2203,6 +2457,9 @@
         case "stock":
           viewHtml += renderStockView(warehouseState, uiState);
           break;
+        case "config":
+          viewHtml += renderConfigView(warehouseState, uiState);
+          break;
         case "inventaire":
           viewHtml += renderInventaireView(warehouseState, uiState);
           break;
@@ -2252,6 +2509,7 @@
       stockFilterStatus: "ALL",
       banner: null, // { type: 'danger'|'success'|'info', message: '' }
       selectedCountLoc: "A-01-01",
+      configSubTab: "directives",
       mobileMenuOpen: false
     };
 
@@ -2595,6 +2853,32 @@
         renderApp();
         return;
       }
+
+      if (action === "config-subtab") {
+        uiState.configSubTab = target.getAttribute("data-subtab");
+        renderApp();
+        return;
+      }
+
+      if (action === "move-directive-up" || action === "move-directive-down") {
+        const dirId = target.getAttribute("data-directive-id");
+        const dirs = warehouseState.locationDirectives || [];
+        dirs.sort((a, b) => a.sequence - b.sequence);
+        const idx = dirs.findIndex(d => d.id === dirId);
+        if (idx !== -1) {
+          const swapIdx = action === "move-directive-up" ? idx - 1 : idx + 1;
+          if (swapIdx >= 0 && swapIdx < dirs.length) {
+            const tempSeq = dirs[idx].sequence;
+            dirs[idx].sequence = dirs[swapIdx].sequence;
+            dirs[swapIdx].sequence = tempSeq;
+            dirs.sort((a, b) => a.sequence - b.sequence);
+            saveState();
+            showBanner("info", `Ordre de la directive ${dirId} modifié.`);
+            renderApp();
+          }
+        }
+        return;
+      }
     });
 
     document.addEventListener("change", function(e) {
@@ -2899,6 +3183,33 @@
         assert("Work SO : création d'un travail de prélèvement pour SO-2001 (WT-SO-PICK)", soWork && soWork.templateId === "WT-SO-PICK");
       } catch (err) {
         assert("Suite 5 exception", false, err.message);
+      }
+
+      // TEST SUITE 6: D365 Location Directives
+      try {
+        const st6 = createFreshWarehouseState();
+        // 1. Directives exist in setup
+        assert("Location Directives : présence des directives Put et Pick", (st6.locationDirectives || []).length >= 3);
+
+        // 2. Directive matching returns correct directive by sequence
+        const dir = findLocationDirective(st6, "PO", "Put", "WH-MAIN");
+        assert("Location Directives : résolution de la première directive active (séquence 10)", dir && dir.sequence === 10);
+
+        // 3. Work lines include directive explanation
+        receive(st6, "PO-1001", 0, 50);
+        const poWork = (st6.works || []).find(w => w.ref === "PO-1001");
+        const putLine = poWork && poWork.lines.find(l => l.workType === "Put");
+        assert("Location Directives : explication de directive affichée sur la ligne de travail", putLine && typeof putLine.directive === "string" && putLine.directive.includes("Directive"));
+
+        // 4. Modifying directive sequence changes target zone behavior
+        const dirPickZone = st6.locationDirectives.find(d => d.id === "DIR-PUT-02");
+        if (dirPickZone) dirPickZone.sequence = 5;
+        st6.locationDirectives.sort((a, b) => a.sequence - b.sequence);
+
+        const newFirstDir = findLocationDirective(st6, "PO", "Put", "WH-MAIN");
+        assert("Location Directives : la modification de séquence change la directive prioritaire", newFirstDir && newFirstDir.id === "DIR-PUT-02");
+      } catch (err) {
+        assert("Suite 6 exception", false, err.message);
       }
 
       // Render Results Panel
