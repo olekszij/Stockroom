@@ -160,6 +160,28 @@ header.app-header {
   gap: 12px;
   text-decoration: none;
   color: var(--text-main);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--border-color);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.brand:hover .brand-icon {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--shadow-color);
+}
+
+.brand:active .brand-icon {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--shadow-color);
 }
 
 .brand-icon {
