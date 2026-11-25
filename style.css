@@ -144,9 +144,10 @@ header.app-header {
 }
 
 .header-top {
-  max-width: 1200px;
+  max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
-  padding: 12px 16px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -347,10 +348,10 @@ header.app-header {
    LAYOUT & CONTAINERS
    ========================================================================== */
 main.app-container {
-  max-width: 1200px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 24px 24px 48px;
   flex: 1;
 }
 
@@ -576,18 +577,20 @@ table.data-table {
 }
 
 table.data-table th, table.data-table td {
-  padding: 13px 18px;
+  padding: 10px 14px;
   border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
 }
 
 table.data-table th {
   background-color: var(--pastel-yellow-subtle);
   color: var(--text-main);
   font-weight: 800;
-  font-size: 13.5px;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
 }
 
 table.data-table tbody tr:hover {
@@ -963,7 +966,8 @@ footer.app-footer {
 }
 
 footer .footer-content {
-  max-width: 1200px;
+  max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
@@ -1117,7 +1121,7 @@ button.hamburger-btn,
 }
 
 .nav-bar-container.menu-open .nav-tabs {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
