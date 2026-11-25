@@ -171,6 +171,36 @@
           description: "Directive 10, ligne 1 : Prélèvement zone STORAGE selon règle FEFO"
         }
       ],
+      waveTemplates: [
+        {
+          id: "WVT-STANDARD",
+          name: "Expédition Standard Vente (Shipping Wave)",
+          warehouse: "WH-MAIN",
+          steps: ["ReleaseToWarehouse", "CreateWork"],
+          autoProcess: true
+        }
+      ],
+      loads: [
+        { id: "LOAD-001", warehouse: "WH-MAIN", carrier: "Transport Express France", status: "Open", shipmentIds: ["SHP-001"] },
+        { id: "LOAD-002", warehouse: "WH-MAIN", carrier: "Logistique Paris Sud", status: "Open", shipmentIds: ["SHP-002"] },
+        { id: "LOAD-003", warehouse: "WH-MAIN", carrier: "Transport Express France", status: "Open", shipmentIds: ["SHP-003"] }
+      ],
+      shipments: [
+        { id: "SHP-001", orderId: "SO-2001", customer: "Café Central de Paris", warehouse: "WH-MAIN", loadId: "LOAD-001", waveId: "WAV-001", status: "Open" },
+        { id: "SHP-002", orderId: "SO-2002", customer: "Bistrot du Port Maritime", warehouse: "WH-MAIN", loadId: "LOAD-002", waveId: null, status: "Open" },
+        { id: "SHP-003", orderId: "SO-2003", customer: "Grand Hôtel de la Plage", warehouse: "WH-MAIN", loadId: "LOAD-003", waveId: null, status: "Open" }
+      ],
+      waves: [
+        {
+          id: "WAV-001",
+          templateId: "WVT-STANDARD",
+          warehouse: "WH-MAIN",
+          status: "Created",
+          shipmentIds: ["SHP-001"],
+          workIds: [],
+          createdAt: "08:15:00"
+        }
+      ],
       works: [],
       tasks: [], // WorkTask legacy bridge
       movementLogs: [
@@ -209,6 +239,12 @@
     function generateLicensePlate() {
       _lpCounter++;
       return "LP-" + _lpCounter;
+    }
+
+    let _waveCounter = 1;
+    function generateWaveId() {
+      _waveCounter++;
+      return "WAV-" + String(_waveCounter).padStart(3, '0');
     }
 
     function getNowTimeStr() {
@@ -785,6 +821,71 @@
       return { state, error: null };
     }
 
+    // D365 Outbound Engine: Process Wave (Created -> Released -> Processing -> Executed)
+    function processWave(state, waveId) {
+      const wave = (state.waves || []).find(w => w.id === waveId);
+      if (!wave) return { error: `Vague ${waveId} introuvable.` };
+      if (wave.status === "Executed") return { error: `La vague ${waveId} est déjà exécutée.` };
+
+      wave.status = "Processing";
+      addLog(state, `Traitement de la vague ${wave.id} en cours (Release to warehouse & Création des travaux)...`);
+
+      const executedWorks = [];
+      for (const shpId of wave.shipmentIds) {
+        const shp = (state.shipments || []).find(s => s.id === shpId);
+        if (shp) {
+          const so = state.salesOrders.find(s => s.id === shp.orderId);
+          if (so && so.status === "open") {
+            const relRes = releaseOrder(state, so.id);
+            if (!relRes.error) {
+              shp.status = "Released";
+              const worksForSo = (state.works || []).filter(w => w.ref === so.id && w.orderType === "SO");
+              worksForSo.forEach(w => {
+                if (!wave.workIds.includes(w.id)) wave.workIds.push(w.id);
+                executedWorks.push(w);
+              });
+            }
+          }
+        }
+      }
+
+      wave.status = "Executed";
+      addLog(state, `Vague ${wave.id} exécutée avec succès (${executedWorks.length} travaux de prélèvement créés).`);
+      return { success: true, wave };
+    }
+
+    // Add shipment to wave
+    function addShipmentToWave(state, shipmentId, waveId) {
+      const shp = (state.shipments || []).find(s => s.id === shipmentId);
+      if (!shp) return { error: "Expédition introuvable." };
+      const wave = (state.waves || []).find(w => w.id === waveId);
+      if (!wave) return { error: "Vague introuvable." };
+      if (wave.status === "Executed") return { error: "Impossible d'ajouter à une vague déjà exécutée." };
+
+      if (!wave.shipmentIds.includes(shipmentId)) {
+        wave.shipmentIds.push(shipmentId);
+        shp.waveId = wave.id;
+      }
+      return { success: true };
+    }
+
+    // Create a new Wave
+    function createNewWave(state, templateId = "WVT-STANDARD", warehouse = "WH-MAIN") {
+      if (!state.waves) state.waves = [];
+      const newWave = {
+        id: generateWaveId(),
+        templateId: templateId,
+        warehouse: warehouse,
+        status: "Created",
+        shipmentIds: [],
+        workIds: [],
+        createdAt: getNowTimeStr()
+      };
+      state.waves.unshift(newWave);
+      addLog(state, `Nouvelle vague créée : ${newWave.id} (Modèle: ${templateId}).`);
+      return newWave;
+    }
+
     // 5. confirmPick(task)
     // Move stock from location to EXPEDITION. When all tasks of order done, status -> picked.
     function confirmPick(state, taskId) {
@@ -849,8 +950,23 @@
       }
 
       so.status = "shipped";
-      addLog(state, `Commande ${so.id} expédiée avec succès vers le client ${so.customer}.`);
 
+      // Update D365 Shipment & Load status
+      const shp = (state.shipments || []).find(s => s.orderId === so.id);
+      if (shp) {
+        shp.status = "Shipped";
+        if (shp.loadId) {
+          const load = (state.loads || []).find(l => l.id === shp.loadId);
+          if (load) {
+            const allShipments = state.shipments.filter(s => s.loadId === load.id);
+            if (allShipments.every(s => s.status === "Shipped")) {
+              load.status = "Shipped";
+            }
+          }
+        }
+      }
+
+      addLog(state, `Commande ${so.id} expédiée avec succès vers le client ${so.customer} (Bon de livraison généré).`);
       return { state, error: null };
     }
 
@@ -1597,105 +1713,289 @@
       `;
     }
 
-    // 4. Expédition View
-    function renderExpeditionView(state) {
+    // 4. Expédition View (D365 Outbound Flow: Sales Order -> Load -> Shipment -> Wave -> Work -> Pick -> Ship)
+    function renderExpeditionView(state, uiState) {
+      const activeSubTab = (uiState && uiState.expedSubTab) || "waves";
       const openPickTasks = state.tasks.filter(t => t.type === "pick" && !t.done);
 
+      const totalSos = state.salesOrders.length;
+      const totalWaves = (state.waves || []).length;
+      const totalShipments = (state.shipments || []).length;
+      const totalLoads = (state.loads || []).length;
+
       return `
+        <!-- KPI Outbound Overview Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-yellow);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #713f12;">${getIcon("expedition")} Vagues (Waves)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #713f12;">${totalWaves} <span style="font-size: 13px; font-weight: 700;">créées</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-blue);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0c4a6e;">${getIcon("box")} Expéditions (Shipments)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #0c4a6e;">${totalShipments} <span style="font-size: 13px; font-weight: 700;">enregistrées</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-lavender);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #4c1d95;">${getIcon("package")} Chargements (Loads)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #4c1d95;">${totalLoads} <span style="font-size: 13px; font-weight: 700;">transporteurs</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-mint);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #14532d;">${getIcon("clipboard")} Prélèvements ouverts</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #14532d;">${openPickTasks.length} <span style="font-size: 13px; font-weight: 700;">en attente</span></div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
-            <span class="card-title">${getIcon("expedition")} Commandes clients (Sales Orders)</span>
+            <span class="card-title">${getIcon("expedition")} Gestion des flux de sortie (D365 Outbound Management)</span>
+            <div>
+              <button class="btn btn-primary btn-sm" data-action="create-new-wave">
+                + Créer une nouvelle Vague (Wave)
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-              Gérez le cycle de préparation des commandes clients : lancement (allocation & vidage des petits emplacements), prélèvement et expédition.
+              Dans Dynamics 365, le flux sortant suit un ordonnancement précis : <strong>Commande client → Chargement (Load) → Expédition (Shipment) → Vague (Wave) → Travail de prélèvement (Pick Work) → Expédition (Ship Confirm)</strong>.
             </p>
 
-            <div style="display: flex; flex-direction: column; gap: 18px;">
-              ${state.salesOrders.map(so => {
-                const canRelease = so.status === "open";
-                const canShip = so.status === "picked";
-                const hasShortage = so.shortages && Object.keys(so.shortages).length > 0;
-
-                return `
-                  <div style="border: 2px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
-                    <div style="background-color: var(--pastel-blue-subtle); border-bottom: 2px solid var(--border-color); padding: 10px 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
-                      <div>
-                        <strong>${so.id}</strong>
-                        <span style="color: var(--text-muted); font-size: 13px; margin-left: 8px;">Client : ${so.customer}</span>
-                      </div>
-                      <div style="display: flex; align-items: center; gap: 10px;">
-                        ${getStatusBadge(so.status)}
-                        ${canRelease ? `
-                          <button class="btn btn-primary btn-sm" data-action="release-so" data-so-id="${so.id}">
-                            Lancer la préparation
-                          </button>
-                        ` : ''}
-                        ${canShip ? `
-                          <button class="btn btn-success btn-sm" data-action="ship-so" data-so-id="${so.id}">
-                            Expédier la commande
-                          </button>
-                        ` : ''}
-                      </div>
-                    </div>
-
-                    ${hasShortage ? `
-                      <div style="padding: 10px 14px; background-color: var(--danger-subtle); color: var(--danger-text); font-size: 12.5px; font-weight: 700; border-bottom: 2px solid var(--border-color);">
-                        ${getIcon("alert")} Rupture détectée lors du lancement : ${Object.entries(so.shortages).map(([sku, q]) => `<b>${sku}</b> (${q} manquants)`).join(', ')}.
-                      </div>
-                    ` : ''}
-
-                    <div class="table-container" style="border: none; border-radius: 0;">
-                      <table class="data-table">
-                        <thead>
-                          <tr>
-                            <th>SKU</th>
-                            <th>Article</th>
-                            <th style="text-align: right;">Quantité demandée</th>
-                            <th style="text-align: right;">Disponibilité totale en rayon</th>
-                            <th>État de la ligne</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${so.lines.map(line => {
-                            const item = state.items.find(i => i.sku === line.sku);
-                            // Available in non-dock locations
-                            const totalAvail = state.stock
-                              .filter(s => {
-                                const loc = state.locations.find(l => l.code === s.location);
-                                return loc && !loc.isDock && s.sku === line.sku;
-                              })
-                              .reduce((sum, s) => sum + s.qty, 0);
-
-                            const shortage = so.shortages ? (so.shortages[line.sku] || 0) : 0;
-
-                            return `
-                              <tr>
-                                <td><strong>${line.sku}</strong></td>
-                                <td>${item ? item.name : ''}</td>
-                                <td class="num" style="text-align: right; font-weight: 600;">${line.qty}</td>
-                                <td class="num" style="text-align: right; color: ${totalAvail >= line.qty ? 'var(--success-text)' : 'var(--danger-text)'};">
-                                  ${totalAvail}
-                                </td>
-                                <td>
-                                  ${shortage > 0 ? `
-                                    <span class="badge badge-danger">Rupture partielle (${shortage} manquant${shortage > 1 ? 's' : ''})</span>
-                                  ` : (so.status === "open" ? `
-                                    <span class="badge badge-neutral">En attente de lancement</span>
-                                  ` : `
-                                    <span class="badge badge-success">Alloué</span>
-                                  `)}
-                                </td>
-                              </tr>
-                            `;
-                          }).join('')}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+            <!-- Sub Tabs -->
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">
+              <button class="btn ${activeSubTab === 'waves' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="exped-subtab" data-subtab="waves">
+                Vagues d'expédition (${totalWaves})
+              </button>
+              <button class="btn ${activeSubTab === 'salesOrders' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="exped-subtab" data-subtab="salesOrders">
+                Commandes clients (${totalSos})
+              </button>
+              <button class="btn ${activeSubTab === 'shipments' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="exped-subtab" data-subtab="shipments">
+                Expéditions (${totalShipments})
+              </button>
+              <button class="btn ${activeSubTab === 'loads' ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="exped-subtab" data-subtab="loads">
+                Chargements / Transport (${totalLoads})
+              </button>
             </div>
+
+            <!-- Tab 1: Waves -->
+            ${activeSubTab === 'waves' ? `
+              <div>
+                <h3 style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px;">Vagues de préparation (Waves)</h3>
+                ${(state.waves || []).length === 0 ? `
+                  <div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm);">
+                    Aucune vague créée. Cliquez sur « Créer une nouvelle Vague » ci-dessus.
+                  </div>
+                ` : `
+                  <div style="display: flex; flex-direction: column; gap: 14px;">
+                    ${(state.waves || []).map(w => {
+                      const canExecute = w.status !== "Executed";
+                      let waveBadge = "badge-neutral";
+                      if (w.status === "Processing") waveBadge = "badge-primary";
+                      else if (w.status === "Executed") waveBadge = "badge-success";
+
+                      return `
+                        <div style="border: 2px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
+                          <div style="background-color: var(--pastel-yellow-subtle); border-bottom: 2px solid var(--border-color); padding: 10px 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                              <strong style="font-size: 15px;">${w.id}</strong>
+                              <span class="badge ${waveBadge}">${w.status}</span>
+                              <span style="font-size: 12px; color: var(--text-muted);">Modèle : <strong>${w.templateId}</strong></span>
+                              <span style="font-size: 12px; color: var(--text-muted);">Entrepôt : <strong>${w.warehouse}</strong></span>
+                            </div>
+                            <div>
+                              ${canExecute ? `
+                                <button class="btn btn-primary btn-sm" data-action="process-wave" data-wave-id="${w.id}">
+                                  ${getIcon("play")} Lancer la vague (Release & Create Work)
+                                </button>
+                              ` : `
+                                <span class="badge badge-success">${getIcon("check")} Vague exécutée</span>
+                              `}
+                            </div>
+                          </div>
+
+                          <div style="padding: 12px 14px; background-color: var(--bg-surface);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                              <span style="font-weight: 700; font-size: 12px; text-transform: uppercase;">Expéditions incluses dans la vague :</span>
+                              ${canExecute ? `
+                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                  <select class="input-select" id="select-shp-${w.id}" style="font-size: 11px; padding: 3px 6px;">
+                                    ${(state.shipments || []).filter(s => !w.shipmentIds.includes(s.id)).map(s => `
+                                      <option value="${s.id}">${s.id} — ${s.orderId} (${s.customer})</option>
+                                    `).join('')}
+                                  </select>
+                                  <button class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 3px 8px;" data-action="add-shipment-wave" data-wave-id="${w.id}">
+                                    + Ajouter expédition
+                                  </button>
+                                </div>
+                              ` : ''}
+                            </div>
+
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                              ${w.shipmentIds.map(sid => {
+                                const shp = (state.shipments || []).find(s => s.id === sid);
+                                return `
+                                  <div style="background-color: var(--bg-surface-subtle); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                                    <strong>${sid}</strong>
+                                    <span style="color: var(--text-muted);">${shp ? shp.orderId + ' (' + shp.customer + ')' : ''}</span>
+                                    <span class="badge badge-neutral" style="font-size: 10px;">${shp ? shp.status : ''}</span>
+                                  </div>
+                                `;
+                              }).join('')}
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
+              </div>
+            ` : ''}
+
+            <!-- Tab 2: Sales Orders -->
+            ${activeSubTab === 'salesOrders' ? `
+              <div style="display: flex; flex-direction: column; gap: 18px;">
+                ${state.salesOrders.map(so => {
+                  const canRelease = so.status === "open";
+                  const canShip = so.status === "picked";
+                  const hasShortage = so.shortages && Object.keys(so.shortages).length > 0;
+                  const shp = (state.shipments || []).find(s => s.orderId === so.id);
+
+                  return `
+                    <div style="border: 2px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
+                      <div style="background-color: var(--pastel-blue-subtle); border-bottom: 2px solid var(--border-color); padding: 10px 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                        <div>
+                          <strong>${so.id}</strong>
+                          <span style="color: var(--text-muted); font-size: 13px; margin-left: 8px;">Client : ${so.customer}</span>
+                          ${shp ? `<span class="badge badge-neutral" style="margin-left: 8px;">Expédition : ${shp.id}</span>` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          ${getStatusBadge(so.status)}
+                          ${canRelease ? `
+                            <button class="btn btn-primary btn-sm" data-action="release-so" data-so-id="${so.id}">
+                              Lancer la commande (Release)
+                            </button>
+                          ` : ''}
+                          ${canShip ? `
+                            <button class="btn btn-success btn-sm" data-action="ship-so" data-so-id="${so.id}">
+                              ${getIcon("check")} Confirmer expédition (Ship Confirm)
+                            </button>
+                          ` : ''}
+                        </div>
+                      </div>
+
+                      ${hasShortage ? `
+                        <div style="padding: 10px 14px; background-color: var(--danger-subtle); color: var(--danger-text); font-size: 12.5px; font-weight: 700; border-bottom: 2px solid var(--border-color);">
+                          ${getIcon("alert")} Rupture détectée lors du lancement : ${Object.entries(so.shortages).map(([sku, q]) => `<b>${sku}</b> (${q} manquants)`).join(', ')}.
+                        </div>
+                      ` : ''}
+
+                      <div class="table-container" style="border: none; border-radius: 0;">
+                        <table class="data-table">
+                          <thead>
+                            <tr>
+                              <th>SKU</th>
+                              <th>Article</th>
+                              <th style="text-align: right;">Quantité demandée</th>
+                              <th style="text-align: right;">Disponibilité totale en rayon</th>
+                              <th>État de la ligne</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${so.lines.map(line => {
+                              const item = state.items.find(i => i.sku === line.sku);
+                              const totalAvail = state.stock
+                                .filter(s => {
+                                  const loc = state.locations.find(l => l.code === s.location);
+                                  return loc && !loc.isDock && s.sku === line.sku && s.status === "Disponible";
+                                })
+                                .reduce((sum, s) => sum + Math.max(0, s.qty - (s.reservedQty || 0)), 0);
+
+                              const shortage = so.shortages ? (so.shortages[line.sku] || 0) : 0;
+
+                              return `
+                                <tr>
+                                  <td><strong>${line.sku}</strong></td>
+                                  <td>${item ? item.name : ''}</td>
+                                  <td class="num" style="text-align: right; font-weight: 600;">${line.qty}</td>
+                                  <td class="num" style="text-align: right; color: ${totalAvail >= line.qty ? 'var(--success-text)' : 'var(--danger-text)'};">
+                                    ${totalAvail}
+                                  </td>
+                                  <td>
+                                    ${shortage > 0 ? `
+                                      <span class="badge badge-danger">Rupture partielle (${shortage} manquant${shortage > 1 ? 's' : ''})</span>
+                                    ` : (so.status === "open" ? `
+                                      <span class="badge badge-neutral">En attente de lancement</span>
+                                    ` : `
+                                      <span class="badge badge-success">Alloué</span>
+                                    `)}
+                                  </td>
+                                </tr>
+                              `;
+                            }).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+
+            <!-- Tab 3: Shipments -->
+            ${activeSubTab === 'shipments' ? `
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID Expédition</th>
+                      <th>Commande Ref</th>
+                      <th>Client Destinataire</th>
+                      <th>Chargement (Load)</th>
+                      <th>Vague (Wave)</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(state.shipments || []).map(s => `
+                      <tr>
+                        <td><strong>${s.id}</strong></td>
+                        <td>${s.orderId}</td>
+                        <td>${s.customer}</td>
+                        <td><span class="badge badge-neutral">${s.loadId || 'Non assigné'}</span></td>
+                        <td><span class="badge badge-primary">${s.waveId || 'En attente'}</span></td>
+                        <td><span class="badge badge-success">${s.status}</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+
+            <!-- Tab 4: Loads -->
+            ${activeSubTab === 'loads' ? `
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID Chargement</th>
+                      <th>Entrepôt</th>
+                      <th>Transporteur (Carrier)</th>
+                      <th>Expéditions rattachées</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(state.loads || []).map(l => `
+                      <tr>
+                        <td><strong>${l.id}</strong></td>
+                        <td>${l.warehouse}</td>
+                        <td><strong>${l.carrier}</strong></td>
+                        <td>${l.shipmentIds.join(', ')}</td>
+                        <td><span class="badge ${l.status === 'Shipped' ? 'badge-success' : 'badge-neutral'}">${l.status}</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+
           </div>
         </div>
 
@@ -1712,7 +2012,7 @@
 
             ${openPickTasks.length === 0 ? `
               <div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm);">
-                Aucun prélèvement en attente. Lancez la préparation d'une commande client ci-dessus pour générer des tâches.
+                Aucun prélèvement en attente. Lancez la préparation d'une commande client ou d'une vague ci-dessus pour générer des tâches.
               </div>
             ` : `
               <div class="table-container">
@@ -2449,7 +2749,7 @@
           viewHtml += renderReceptionView(warehouseState);
           break;
         case "expedition":
-          viewHtml += renderExpeditionView(warehouseState);
+          viewHtml += renderExpeditionView(warehouseState, uiState);
           break;
         case "travaux":
           viewHtml += renderTravauxView(warehouseState, uiState);
@@ -2509,6 +2809,7 @@
       stockFilterStatus: "ALL",
       banner: null, // { type: 'danger'|'success'|'info', message: '' }
       selectedCountLoc: "A-01-01",
+      expedSubTab: "waves",
       configSubTab: "directives",
       mobileMenuOpen: false
     };
@@ -2766,6 +3067,50 @@
           saveState();
         }
         renderApp();
+        return;
+      }
+
+      if (action === "exped-subtab") {
+        uiState.expedSubTab = target.getAttribute("data-subtab");
+        renderApp();
+        return;
+      }
+
+      if (action === "create-new-wave") {
+        createNewWave(warehouseState);
+        saveState();
+        showBanner("success", "Nouvelle vague créée.");
+        renderApp();
+        return;
+      }
+
+      if (action === "process-wave") {
+        const waveId = target.getAttribute("data-wave-id");
+        const res = processWave(warehouseState, waveId);
+        if (res.error) {
+          showBanner("danger", res.error);
+        } else {
+          clearBanner();
+          checkTrainingMissions();
+          saveState();
+        }
+        renderApp();
+        return;
+      }
+
+      if (action === "add-shipment-wave") {
+        const waveId = target.getAttribute("data-wave-id");
+        const select = document.getElementById(`select-shp-${waveId}`);
+        const shpId = select ? select.value : "";
+        if (shpId) {
+          const res = addShipmentToWave(warehouseState, shpId, waveId);
+          if (res.error) {
+            showBanner("danger", res.error);
+          } else {
+            saveState();
+          }
+          renderApp();
+        }
         return;
       }
 
@@ -3210,6 +3555,31 @@
         assert("Location Directives : la modification de séquence change la directive prioritaire", newFirstDir && newFirstDir.id === "DIR-PUT-02");
       } catch (err) {
         assert("Suite 6 exception", false, err.message);
+      }
+
+      // TEST SUITE 7: D365 Outbound Flow (Loads, Shipments, Waves)
+      try {
+        const st7 = createFreshWarehouseState();
+        // 1. Initial Outbound records exist
+        assert("Outbound Model : présence des chargements (Loads) et expéditions (Shipments)", (st7.loads || []).length >= 3 && (st7.shipments || []).length >= 3);
+        assert("Outbound Model : présence des vagues (Waves)", (st7.waves || []).length >= 1);
+
+        // 2. Wave Processing executes and releases SO
+        const wave = st7.waves[0];
+        assert("Wave status initial : 'Created'", wave.status === "Created");
+        const procRes = processWave(st7, wave.id);
+        assert("Wave process : exécution de la vague réussie", !procRes.error);
+        assert("Wave status final : 'Executed'", wave.status === "Executed");
+
+        // 3. SO-2001 is now released through wave
+        const so1 = st7.salesOrders.find(s => s.id === "SO-2001");
+        assert("Wave release : la commande SO-2001 est passée au statut 'released'", so1 && so1.status === "released");
+
+        // 4. Picking work orders created for wave
+        const soWorks = (st7.works || []).filter(w => w.ref === "SO-2001");
+        assert("Wave work : travaux de prélèvement créés pour la vague", soWorks.length > 0);
+      } catch (err) {
+        assert("Suite 7 exception", false, err.message);
       }
 
       // Render Results Panel
