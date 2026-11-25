@@ -1898,29 +1898,43 @@
           </div>
         ` : ''}
 
-        <!-- SUB-TAB 4: FULL GLOSSARY -->
+        <!-- SUB-TAB 4: FULL GLOSSARY (COLLAPSIBLE / ACCORDION) -->
         ${activeTheoryTab === 'glossary' ? `
           <div class="card" style="margin-bottom: 24px; background-color: var(--pastel-blue-subtle);">
-            <div class="card-header" style="background-color: transparent; border-bottom: 2px solid var(--border-color);">
-              <span class="card-title">${getIcon("clipboard")} Référentiel Bilingue Officiel Dynamics 365 Supply Chain Management</span>
-              <span style="font-size: 13px; color: var(--text-muted); font-weight: 800;">${D365_FULL_GLOSSARY.length} termes certifiés</span>
-            </div>
-            <div class="card-body">
-              <p style="font-size: 14.5px; color: var(--text-main); margin-bottom: 16px; line-height: 1.6;">
-                Voici le lexique technique exhaustif utilisé par les architectes de solutions, consultants et chefs d'exploitation Dynamics 365. Chaque concept est présenté avec sa terminologie officielle en français et son équivalent technique Microsoft en anglais :
-              </p>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
-                ${D365_FULL_GLOSSARY.map(g => `
-                  <div style="background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; box-shadow: var(--shadow-sm);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px;">
-                      <strong style="color: #0c4a6e; font-size: 15px;">${g.fr}</strong>
-                      <span class="badge badge-neutral" style="font-size: 11px; font-family: monospace; white-space: nowrap;">${g.en}</span>
-                    </div>
-                    <div style="color: var(--text-main); font-size: 13.5px; line-height: 1.5;">${g.def}</div>
-                  </div>
-                `).join('')}
+            <div class="card-header" style="background-color: transparent; border-bottom: 2px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer;" data-action="toggle-full-glossary">
+              <span class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                ${getIcon("clipboard")} Référentiel Bilingue Officiel Dynamics 365 Supply Chain Management
+              </span>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge badge-neutral" style="font-size: 12px; font-weight: 800;">${D365_FULL_GLOSSARY.length} termes</span>
+                <button class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 2px 8px;" data-action="toggle-full-glossary">
+                  ${uiState.fullGlossaryExpanded ? '▲ Réduire' : '▼ Déplier le dictionnaire'}
+                </button>
               </div>
             </div>
+            ${uiState.fullGlossaryExpanded ? `
+              <div class="card-body">
+                <p style="font-size: 14.5px; color: var(--text-main); margin-bottom: 16px; line-height: 1.6;">
+                  Voici le lexique technique exhaustif utilisé par les architectes de solutions, consultants et chefs d'exploitation Dynamics 365. Chaque concept est présenté avec sa terminologie officielle en français et son équivalent technique Microsoft en anglais :
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+                  ${D365_FULL_GLOSSARY.map(g => `
+                    <div style="background-color: var(--bg-surface); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; box-shadow: var(--shadow-sm);">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px;">
+                        <strong style="color: #0c4a6e; font-size: 15px;">${g.fr}</strong>
+                        <span class="badge badge-neutral" style="font-size: 11px; font-family: monospace; white-space: nowrap;">${g.en}</span>
+                      </div>
+                      <div style="color: var(--text-main); font-size: 13.5px; line-height: 1.5;">${g.def}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : `
+              <div class="card-body" style="padding: 12px 16px; font-size: 13.5px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                <span>Le lexique bilingue de <strong>${D365_FULL_GLOSSARY.length} termes officiels</strong> est replié pour alléger l'écran.</span>
+                <button class="btn btn-secondary btn-sm" data-action="toggle-full-glossary">Afficher le lexique complet (26 termes) →</button>
+              </div>
+            `}
           </div>
         ` : ''}
 
@@ -1975,12 +1989,15 @@
                         `).join('') : ''}
                       </div>
 
-                      <!-- Essential Glossary -->
-                      <div>
-                        <div style="font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                          ${getIcon("award")} Termes clés associés
-                        </div>
-                        <div class="glossary-grid">
+                      <!-- Essential Glossary (Collapsible details) -->
+                      <details class="lesson-glossary-details" style="background-color: var(--bg-surface-subtle); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px;">
+                        <summary style="font-weight: 700; font-size: 13.5px; text-transform: uppercase; color: #0c4a6e; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                          <span style="display: flex; align-items: center; gap: 6px;">
+                            ${getIcon("award")} Lexique des termes clés (${lesson.glossary.length})
+                          </span>
+                          <span class="badge badge-neutral" style="font-size: 11px;">Cliquer pour dérouler</span>
+                        </summary>
+                        <div class="glossary-grid" style="margin-top: 12px;">
                           ${lesson.glossary.map(g => `
                             <div class="glossary-term">
                               <strong>${g.term}</strong>
@@ -1988,7 +2005,7 @@
                             </div>
                           `).join('')}
                         </div>
-                      </div>
+                      </details>
 
                       <!-- Practical Mission Box -->
                       <div class="mission-box">
@@ -3848,6 +3865,18 @@
           checkTrainingMissions();
           saveState();
         }
+        renderApp();
+        return;
+      }
+
+      if (action === "training-subtab") {
+        uiState.trainingTheoryTab = target.getAttribute("data-subtab") || "lessons";
+        renderApp();
+        return;
+      }
+
+      if (action === "toggle-full-glossary") {
+        uiState.fullGlossaryExpanded = !uiState.fullGlossaryExpanded;
         renderApp();
         return;
       }
