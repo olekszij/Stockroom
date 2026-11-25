@@ -608,6 +608,11 @@ table.data-table tbody tr:hover {
 .badge-status-quarantaine { background-color: var(--pastel-peach); color: #7c2d12; }
 .badge-lp { background-color: var(--pastel-lavender); color: #4c1d95; font-family: monospace; font-size: 11px; }
 .badge-batch { background-color: var(--pastel-yellow); color: #713f12; font-family: monospace; font-size: 11px; }
+.badge-work-open { background-color: var(--pastel-yellow); color: #713f12; }
+.badge-work-inprogress { background-color: var(--pastel-blue); color: #0c4a6e; }
+.badge-work-closed { background-color: var(--pastel-mint); color: #14532d; }
+.badge-type-pick { background-color: var(--pastel-peach); color: #7c2d12; font-weight: 800; }
+.badge-type-put { background-color: var(--pastel-mint); color: #14532d; font-weight: 800; }
 
 /* ==========================================================================
    BUTTONS (Tactile 3D Click Feel)

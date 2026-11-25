@@ -131,7 +131,13 @@
           shortages: {}
         }
       ],
-      tasks: [], // WorkTask: { id, type: 'putaway'|'pick', sku, qty, from, to, ref, licensePlate, batch, done }
+      workTemplates: [
+        { id: "WT-PO-PUT", name: "Rangement Réception Achat", orderType: "PO", steps: ["Pick", "Put"] },
+        { id: "WT-SO-PICK", name: "Prélèvement Expédition Vente", orderType: "SO", steps: ["Pick", "Put"] },
+        { id: "WT-REPLEN", name: "Réapprovisionnement Picking", orderType: "REPLEN", steps: ["Pick", "Put"] }
+      ],
+      works: [],
+      tasks: [], // WorkTask legacy bridge
       movementLogs: [
         { time: "08:00:00", text: "Initialisation du stock de démonstration D365 WMS (WH-MAIN)." }
       ]
@@ -158,6 +164,12 @@
       return "TSK-" + _taskCounter;
     }
 
+    let _workCounter = 1000;
+    function generateWorkId() {
+      _workCounter++;
+      return "WRK-" + _workCounter;
+    }
+
     let _lpCounter = 1007;
     function generateLicensePlate() {
       _lpCounter++;
@@ -179,6 +191,152 @@
       if (state.movementLogs.length > 30) {
         state.movementLogs = state.movementLogs.slice(0, 30);
       }
+    }
+
+    // Create D365 Work Order with paired Pick/Put lines
+    function createWorkOrder(state, orderType, refId, templateId, linesData, warehouse = "WH-MAIN") {
+      if (!state.works) state.works = [];
+      const workId = generateWorkId();
+      const lines = [];
+
+      linesData.forEach((item, idx) => {
+        const pickLineNum = (idx * 2) + 1;
+        const putLineNum = (idx * 2) + 2;
+        // Line 1: Pick
+        lines.push({
+          lineNum: pickLineNum,
+          workType: "Pick",
+          sku: item.sku,
+          qty: item.qty,
+          from: item.from,
+          to: item.transit || "STAGE",
+          licensePlate: item.licensePlate,
+          batch: item.batch || null,
+          status: "Open" // Open | Closed
+        });
+        // Line 2: Put
+        lines.push({
+          lineNum: putLineNum,
+          workType: "Put",
+          sku: item.sku,
+          qty: item.qty,
+          from: item.transit || "STAGE",
+          to: item.to || "",
+          licensePlate: item.licensePlate,
+          batch: item.batch || null,
+          status: "Open" // Open | Closed
+        });
+      });
+
+      const work = {
+        id: workId,
+        orderType: orderType, // "PO" | "SO" | "REPLEN"
+        templateId: templateId,
+        workTemplate: templateId,
+        warehouse: warehouse,
+        ref: refId,
+        status: "Open", // Open | In progress | Closed | Cancelled
+        user: null,
+        createdAt: getNowTimeStr(),
+        lines: lines
+      };
+
+      state.works.unshift(work);
+      return work;
+    }
+
+    // Execute a Work line (strictly enforces D365 Pick before Put sequence)
+    function executeWorkLine(state, workId, lineNum, chosenDest = null) {
+      if (!state.works) return { error: "Aucun travail enregistré." };
+      const work = state.works.find(w => w.id === workId);
+      if (!work) return { error: `Travail ${workId} introuvable.` };
+      if (work.status === "Closed" || work.status === "Cancelled") {
+        return { error: `Le travail ${workId} est déjà clôturé ou annulé.` };
+      }
+
+      const line = work.lines.find(l => l.lineNum === lineNum);
+      if (!line) return { error: `Ligne de travail #${lineNum} introuvable.` };
+      if (line.status === "Closed") {
+        return { error: `Cette ligne de travail #${lineNum} est déjà clôturée.` };
+      }
+
+      // D365 Rule: Put line can ONLY be executed after the paired Pick line is Closed
+      if (line.workType === "Put") {
+        const pairedPick = work.lines.find(l => l.lineNum === lineNum - 1 && l.workType === "Pick");
+        if (pairedPick && pairedPick.status !== "Closed") {
+          return { error: "Règle D365 : Impossible d'effectuer la dépose (Put). Vous devez d'abord valider le prélèvement (Pick) correspondant." };
+        }
+
+        const dest = chosenDest || line.to;
+        if (!dest || dest.trim() === "") {
+          return { error: "Veuillez sélectionner un emplacement de dépose." };
+        }
+
+        // Validate destination capacity if non-dock
+        const loc = state.locations.find(l => l.code === dest);
+        if (!loc) return { error: `Emplacement de destination ${dest} invalide.` };
+        if (!loc.isDock) {
+          const physFree = getLocationPhysicalFreeSpace(state, dest);
+          if (line.qty > physFree) {
+            return { error: `Capacité dépassée pour ${dest} : libre ${physFree}, requis ${line.qty}.` };
+          }
+        }
+
+        // Move stock to destination
+        if (work.orderType === "PO") {
+          adjustStock(state, line.sku, "RECEPTION", -line.qty, { licensePlate: line.licensePlate });
+          adjustStock(state, line.sku, dest, line.qty, {
+            warehouse: work.warehouse,
+            licensePlate: line.licensePlate,
+            batch: line.batch,
+            status: "Disponible"
+          });
+          // Sync legacy task
+          const legacyTask = state.tasks.find(t => t.ref === work.ref && t.type === "putaway" && t.sku === line.sku && !t.done);
+          if (legacyTask) { legacyTask.to = dest; legacyTask.done = true; }
+        } else if (work.orderType === "SO") {
+          adjustStock(state, line.sku, line.from, -line.qty, { licensePlate: line.licensePlate });
+          adjustStock(state, line.sku, "EXPEDITION", line.qty, {
+            warehouse: work.warehouse,
+            licensePlate: line.licensePlate,
+            batch: line.batch,
+            status: "Disponible"
+          });
+          // Sync legacy task
+          const legacyTask = state.tasks.find(t => t.ref === work.ref && t.type === "pick" && t.sku === line.sku && !t.done);
+          if (legacyTask) { legacyTask.done = true; }
+        }
+
+        line.to = dest;
+        line.status = "Closed";
+        addLog(state, `Dépose (Put) validée : ${line.qty}x ${line.sku} (LP: ${line.licensePlate}) déposés en ${dest} (Travail: ${work.id}).`);
+
+        if (work.lines.every(l => l.status === "Closed")) {
+          work.status = "Closed";
+          addLog(state, `Travail ${work.id} entièrement clôturé (Closed).`);
+
+          if (work.orderType === "SO") {
+            const so = state.salesOrders.find(s => s.id === work.ref);
+            if (so) {
+              const soWorks = state.works.filter(w => w.ref === so.id && w.orderType === "SO");
+              if (soWorks.every(w => w.status === "Closed")) {
+                so.status = "picked";
+                addLog(state, `Commande client ${so.id} prête pour expédition (statut: picked).`);
+              }
+            }
+          }
+        }
+        return { success: true, work };
+      }
+
+      if (line.workType === "Pick") {
+        line.status = "Closed";
+        work.status = "In progress";
+        addLog(state, `Prélèvement (Pick) validé : ${line.qty}x ${line.sku} (LP: ${line.licensePlate}) prélevés en ${line.from} (Travail: ${work.id}).`);
+        return { success: true, work };
+      }
+
+      return { error: "Type de travail non supporté." };
     }
 
     // Helper: Add or subtract stock at a location with D365 dimensions
@@ -385,6 +543,19 @@
       });
       state.tasks.push(...putawayTasks);
 
+      // Create D365 Work for PO Putaway
+      if (putawayTasks.length > 0) {
+        const linesData = putawayTasks.map(t => ({
+          sku: t.sku,
+          qty: t.qty,
+          from: "RECEPTION",
+          to: t.to,
+          licensePlate: t.licensePlate,
+          batch: batch
+        }));
+        createWorkOrder(state, "PO", po.id, "WT-PO-PUT", linesData, po.warehouse || "WH-MAIN");
+      }
+
       addLog(state, `Réception de ${actualQty}x ${line.sku} (Plaque LP: ${lp}) sur RECEPTION (PO: ${po.id}).`);
 
       return { state, error: null };
@@ -434,6 +605,22 @@
 
       task.to = dest;
       task.done = true;
+
+      // Sync D365 work if exists
+      if (state.works) {
+        for (const w of state.works) {
+          if (w.ref === task.ref && w.orderType === "PO") {
+            const putLine = w.lines.find(l => l.workType === "Put" && l.sku === task.sku && l.status !== "Closed");
+            if (putLine) {
+              const pickLine = w.lines.find(l => l.lineNum === putLine.lineNum - 1);
+              if (pickLine) pickLine.status = "Closed";
+              putLine.status = "Closed";
+              putLine.to = dest;
+              if (w.lines.every(l => l.status === "Closed")) w.status = "Closed";
+            }
+          }
+        }
+      }
 
       addLog(state, `Rangement terminé : ${task.qty}x ${task.sku} (LP: ${savedLp}) rangés dans ${dest} (Tâche: ${task.id}).`);
       return { state, error: null };
@@ -509,6 +696,20 @@
         }
       }
 
+      // Create D365 Work for SO Picking
+      const soPicks = state.tasks.filter(t => t.ref === so.id && t.type === "pick" && !t.done);
+      if (soPicks.length > 0) {
+        const linesData = soPicks.map(t => ({
+          sku: t.sku,
+          qty: t.qty,
+          from: t.from,
+          to: "EXPEDITION",
+          licensePlate: t.licensePlate,
+          batch: t.batch
+        }));
+        createWorkOrder(state, "SO", so.id, "WT-SO-PICK", linesData, wh);
+      }
+
       so.status = "released";
       const shortageCount = Object.keys(so.shortages).length;
       if (shortageCount > 0) {
@@ -539,6 +740,21 @@
       });
 
       task.done = true;
+
+      // Sync D365 work if exists
+      if (state.works) {
+        for (const w of state.works) {
+          if (w.ref === task.ref && w.orderType === "SO") {
+            const putLine = w.lines.find(l => l.workType === "Put" && l.sku === task.sku && l.status !== "Closed");
+            if (putLine) {
+              const pickLine = w.lines.find(l => l.lineNum === putLine.lineNum - 1);
+              if (pickLine) pickLine.status = "Closed";
+              putLine.status = "Closed";
+              if (w.lines.every(l => l.status === "Closed")) w.status = "Closed";
+            }
+          }
+        }
+      }
 
       // Check if all pick tasks for this SO are completed
       const remainingPicks = state.tasks.filter(t => t.ref === task.ref && t.type === "pick" && !t.done);
@@ -1478,6 +1694,197 @@
       `;
     }
 
+    // 4b. Travaux View (D365 Work Headers & Paired Pick/Put Lines)
+    function renderTravauxView(state, uiState) {
+      const activeType = (uiState && uiState.workFilterType) || "ALL";
+      const activeStatus = (uiState && uiState.workFilterStatus) || "ALL";
+
+      const works = state.works || [];
+      const filteredWorks = works.filter(w => {
+        if (activeType !== "ALL" && w.orderType !== activeType) return false;
+        if (activeStatus !== "ALL" && w.status !== activeStatus) return false;
+        return true;
+      });
+
+      const openCount = works.filter(w => w.status === "Open").length;
+      const inProgressCount = works.filter(w => w.status === "In progress").length;
+      const closedCount = works.filter(w => w.status === "Closed").length;
+
+      return `
+        <!-- KPI Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-yellow);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #713f12;">${getIcon("clipboard")} Travaux Ouverts (Open)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #713f12;">${openCount} <span style="font-size: 13px; font-weight: 700;">en attente</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-blue);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0c4a6e;">${getIcon("clock")} En cours (In progress)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #0c4a6e;">${inProgressCount} <span style="font-size: 13px; font-weight: 700;">prélèvement fait</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-mint);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #14532d;">${getIcon("check-circle")} Clôturés (Closed)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #14532d;">${closedCount} <span style="font-size: 13px; font-weight: 700;">terminés</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">${getIcon("clipboard")} Gestion des Travaux WMS (D365 Work Management)</span>
+            <span class="badge badge-primary num">${filteredWorks.length} affichés</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+              Dans Dynamics 365, chaque mouvement physique est encadré par un <strong>En-tête de travail (Work Header)</strong> associé à un modèle (Work Template). Les lignes fonctionnent toujours par paires ordonnées : le <strong>Prélèvement (Pick)</strong> doit impérativement être validé avant d'autoriser la <strong>Dépose (Put)</strong>.
+            </p>
+
+            <!-- Filters -->
+            <div style="background-color: var(--bg-surface-subtle); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="filter-work-type" style="font-weight: 700; font-size: 12px;">Type de commande :</label>
+                  <select id="filter-work-type" class="input-select" data-action="filter-work-type" style="font-size: 12px; padding: 4px 8px;">
+                    <option value="ALL" ${activeType === 'ALL' ? 'selected' : ''}>Tous les types</option>
+                    <option value="PO" ${activeType === 'PO' ? 'selected' : ''}>Rangement PO (Achat)</option>
+                    <option value="SO" ${activeType === 'SO' ? 'selected' : ''}>Prélèvement SO (Vente)</option>
+                    <option value="REPLEN" ${activeType === 'REPLEN' ? 'selected' : ''}>Réapprovisionnement</option>
+                  </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="filter-work-status" style="font-weight: 700; font-size: 12px;">Statut du travail :</label>
+                  <select id="filter-work-status" class="input-select" data-action="filter-work-status" style="font-size: 12px; padding: 4px 8px;">
+                    <option value="ALL" ${activeStatus === 'ALL' ? 'selected' : ''}>Tous les statuts</option>
+                    <option value="Open" ${activeStatus === 'Open' ? 'selected' : ''}>Open (Ouvert)</option>
+                    <option value="In progress" ${activeStatus === 'In progress' ? 'selected' : ''}>In progress (En cours)</option>
+                    <option value="Closed" ${activeStatus === 'Closed' ? 'selected' : ''}>Closed (Clôturé)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Work Headers List -->
+            ${filteredWorks.length === 0 ? `
+              <div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm);">
+                Aucun travail ne correspond aux filtres. Réceptionnez une commande d'achat ou lancez une commande client pour générer des travaux.
+              </div>
+            ` : `
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${filteredWorks.map(w => {
+                  let statusBadgeClass = "badge-work-open";
+                  if (w.status === "In progress") statusBadgeClass = "badge-work-inprogress";
+                  else if (w.status === "Closed") statusBadgeClass = "badge-work-closed";
+
+                  const template = (state.workTemplates || []).find(t => t.id === w.templateId);
+
+                  return `
+                    <div class="work-header-card">
+                      <div class="work-header-head">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                          <span style="font-size: 15px; font-weight: 900; letter-spacing: -0.2px;">${w.id}</span>
+                          <span class="badge badge-neutral">${w.orderType === 'PO' ? 'Achat (PO)' : (w.orderType === 'SO' ? 'Vente (SO)' : w.orderType)}</span>
+                          <span style="font-size: 12px; color: var(--text-muted);">Réf : <strong>${w.ref}</strong></span>
+                          <span style="font-size: 12px; color: var(--text-muted);">Modèle : <strong>${template ? template.name : w.templateId}</strong></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span style="font-size: 12px; color: var(--text-muted);">${w.warehouse}</span>
+                          <span class="badge ${statusBadgeClass}">${w.status}</span>
+                        </div>
+                      </div>
+
+                      <div class="table-container" style="border: none; border-radius: 0;">
+                        <table class="data-table">
+                          <thead>
+                            <tr>
+                              <th style="width: 50px;">Ligne</th>
+                              <th style="width: 100px;">Action</th>
+                              <th>Article (SKU)</th>
+                              <th style="text-align: right; width: 70px;">Qté</th>
+                              <th>Plaque (LP)</th>
+                              <th>Emplacement</th>
+                              <th style="width: 90px;">Statut</th>
+                              <th style="text-align: right; width: 170px;">Action opérateur</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${w.lines.map(line => {
+                              const it = state.items.find(i => i.sku === line.sku);
+                              const isPick = line.workType === "Pick";
+                              const typeBadgeClass = isPick ? "badge-type-pick" : "badge-type-put";
+
+                              // Check if line can be executed
+                              let canExecute = false;
+                              let disabledReason = "";
+                              if (line.status === "Closed") {
+                                canExecute = false;
+                                disabledReason = "Terminé";
+                              } else if (isPick) {
+                                canExecute = true;
+                              } else {
+                                // Put line: check if paired pick is closed
+                                const pairedPick = w.lines.find(l => l.lineNum === line.lineNum - 1 && l.workType === "Pick");
+                                if (pairedPick && pairedPick.status === "Closed") {
+                                  canExecute = true;
+                                } else {
+                                  canExecute = false;
+                                  disabledReason = "En attente du Pick";
+                                }
+                              }
+
+                              return `
+                                <tr>
+                                  <td class="num" style="font-weight: 700; color: var(--text-muted);">${line.lineNum}</td>
+                                  <td><span class="badge ${typeBadgeClass}">${line.workType}</span></td>
+                                  <td>
+                                    <strong>${line.sku}</strong>
+                                    <span style="font-size: 11px; color: var(--text-muted); margin-left: 4px;">${it ? it.name : ''}</span>
+                                  </td>
+                                  <td class="num" style="text-align: right; font-weight: 800;">${line.qty}</td>
+                                  <td><span class="badge badge-lp">${line.licensePlate || 'N/A'}</span></td>
+                                  <td>
+                                    ${isPick ? `
+                                      <span class="badge badge-neutral">${line.from}</span>
+                                    ` : `
+                                      ${line.to ? `<span class="badge badge-primary">${line.to}</span>` : `
+                                        <select class="input-select" id="work-dest-${w.id}-${line.lineNum}" style="font-size: 11px; padding: 3px 6px;">
+                                          ${state.locations.filter(l => !l.isDock).map(loc => `
+                                            <option value="${loc.code}">${loc.code} (Zone ${loc.zone})</option>
+                                          `).join('')}
+                                        </select>
+                                      `}
+                                    `}
+                                  </td>
+                                  <td>
+                                    <span class="badge ${line.status === 'Closed' ? 'badge-work-closed' : 'badge-work-open'}">${line.status}</span>
+                                  </td>
+                                  <td style="text-align: right;">
+                                    ${line.status === "Closed" ? `
+                                      <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Validé ${getIcon('check')}</span>
+                                    ` : (canExecute ? `
+                                      <button class="btn btn-primary btn-sm" 
+                                              data-action="${isPick ? 'execute-work-pick' : 'execute-work-put'}" 
+                                              data-work-id="${w.id}" 
+                                              data-line-num="${line.lineNum}">
+                                        ${isPick ? 'Prendre (Pick) →' : 'Déposer (Put) →'}
+                                      </button>
+                                    ` : `
+                                      <span style="font-size: 11px; color: var(--text-subtle); font-style: italic;">${disabledReason}</span>
+                                    `)}
+                                  </td>
+                                </tr>
+                              `;
+                            }).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
     // 5. Stock View (D365 On-hand by Dimensions: Warehouse x Location x License Plate x Batch x Status)
     function renderStockView(state, uiState) {
       const activeWh = (uiState && uiState.stockFilterWarehouse) || "ALL";
@@ -1759,6 +2166,10 @@
       const badgeExp = document.getElementById("badge-expedition-count");
       if (badgeExp) badgeExp.textContent = openPicks;
 
+      const openWorks = (warehouseState.works || []).filter(w => w.status !== "Closed").length;
+      const badgeTravaux = document.getElementById("badge-travaux-count");
+      if (badgeTravaux) badgeTravaux.textContent = openWorks;
+
       // Update Nav Tabs Active State
       document.querySelectorAll(".nav-tab-btn").forEach(btn => {
         const tab = btn.getAttribute("data-tab");
@@ -1785,6 +2196,9 @@
           break;
         case "expedition":
           viewHtml += renderExpeditionView(warehouseState);
+          break;
+        case "travaux":
+          viewHtml += renderTravauxView(warehouseState, uiState);
           break;
         case "stock":
           viewHtml += renderStockView(warehouseState, uiState);
@@ -1832,6 +2246,8 @@
     let uiState = {
       activeTab: "formation",
       activeWarehouse: "WH-MAIN",
+      workFilterType: "ALL",
+      workFilterStatus: "ALL",
       stockFilterWarehouse: "ALL",
       stockFilterStatus: "ALL",
       banner: null, // { type: 'danger'|'success'|'info', message: '' }
@@ -2147,6 +2563,38 @@
         renderApp();
         return;
       }
+
+      if (action === "execute-work-pick") {
+        const workId = target.getAttribute("data-work-id");
+        const lineNum = Number(target.getAttribute("data-line-num"));
+        const res = executeWorkLine(warehouseState, workId, lineNum);
+        if (res.error) {
+          showBanner("danger", res.error);
+        } else {
+          clearBanner();
+          checkTrainingMissions();
+          saveState();
+        }
+        renderApp();
+        return;
+      }
+
+      if (action === "execute-work-put") {
+        const workId = target.getAttribute("data-work-id");
+        const lineNum = Number(target.getAttribute("data-line-num"));
+        const select = document.getElementById(`work-dest-${workId}-${lineNum}`);
+        const chosenDest = select ? select.value : "";
+        const res = executeWorkLine(warehouseState, workId, lineNum, chosenDest);
+        if (res.error) {
+          showBanner("danger", res.error);
+        } else {
+          clearBanner();
+          checkTrainingMissions();
+          saveState();
+        }
+        renderApp();
+        return;
+      }
     });
 
     document.addEventListener("change", function(e) {
@@ -2168,6 +2616,18 @@
 
       if (action === "filter-stock-status") {
         uiState.stockFilterStatus = target.value;
+        renderApp();
+        return;
+      }
+
+      if (action === "filter-work-type") {
+        uiState.workFilterType = target.value;
+        renderApp();
+        return;
+      }
+
+      if (action === "filter-work-status") {
+        uiState.workFilterStatus = target.value;
         renderApp();
         return;
       }
@@ -2407,6 +2867,38 @@
         assert("Règle D365 : le stock 'Bloqué' est exclu des prélèvements (reporté sur A-01-01)", pickTask && pickTask.from === "A-01-01");
       } catch (err) {
         assert("Suite 4 exception", false, err.message);
+      }
+
+      // TEST SUITE 5: D365 Work Engine & Pick/Put Sequence
+      try {
+        const st5 = createFreshWarehouseState();
+        // 1. Receive PO-1001 generates Work Header with paired Pick and Put lines
+        receive(st5, "PO-1001", 0, 150);
+        const poWork = (st5.works || []).find(w => w.ref === "PO-1001" && w.orderType === "PO");
+        assert("Work PO : création d'un en-tête de travail pour la réception", !!poWork);
+        assert("Work PO : modèle WT-PO-PUT appliqué", poWork && poWork.templateId === "WT-PO-PUT");
+        assert("Work PO : contient des paires de lignes Pick et Put", poWork && poWork.lines.length >= 2);
+
+        // Verify pairing and sequence rule: Put cannot be executed while Pick is Open
+        const firstPut = poWork.lines.find(l => l.workType === "Put");
+        const putAttemptBeforePick = executeWorkLine(st5, poWork.id, firstPut.lineNum, "A-01-01");
+        assert("Règle D365 : exécution Put refusée tant que le Pick n'est pas clôturé", !!putAttemptBeforePick.error);
+
+        // Execute Pick line (lineNum 1)
+        const pickRes = executeWorkLine(st5, poWork.id, 1);
+        assert("Règle D365 : exécution du Pick réussie (lineNum 1)", !pickRes.error);
+        assert("Work statut : passe à 'In progress' après le premier Pick", poWork.status === "In progress");
+
+        // Now execute Put line (lineNum 2)
+        const putRes = executeWorkLine(st5, poWork.id, 2, "A-01-02");
+        assert("Règle D365 : exécution du Put autorisée après clôture du Pick", !putRes.error);
+
+        // SO Work verification
+        releaseOrder(st5, "SO-2001");
+        const soWork = (st5.works || []).find(w => w.ref === "SO-2001" && w.orderType === "SO");
+        assert("Work SO : création d'un travail de prélèvement pour SO-2001 (WT-SO-PICK)", soWork && soWork.templateId === "WT-SO-PICK");
+      } catch (err) {
+        assert("Suite 5 exception", false, err.message);
       }
 
       // Render Results Panel
