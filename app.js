@@ -1007,197 +1007,243 @@
 
 
     /* ==========================================================================
-       SECTION 3: TRAINING CONTENT (Lessons, glossaries, missions, quizzes)
+       SECTION 3: TRAINING CONTENT (Dynamics 365 Supply Chain Management Curriculum)
        ========================================================================== */
+    const D365_FULL_GLOSSARY = [
+      { fr: "Entité juridique", en: "Legal entity", def: "Société légale (ex: FR01) détentrice des comptes et du patrimoine de l'entreprise." },
+      { fr: "Site", en: "Site", def: "Zone géographique ou campus regroupant un ou plusieurs entrepôts." },
+      { fr: "Entrepôt", en: "Warehouse", def: "Bâtiment logistique géré par le WMS (ex: WH-MAIN pour la distribution)." },
+      { fr: "Emplacement", en: "Location", def: "Adresse physique exacte de stockage (ex: A-01-01 selon allée-rack-niveau)." },
+      { fr: "Plaque d'immatriculation", en: "License Plate (LP)", def: "Identifiant unique attribué à une palette ou un carton permettant de déplacer tout son contenu d'un coup." },
+      { fr: "Dimensions de stockage", en: "Storage dimensions", def: "Combinaison Site × Entrepôt × Emplacement × License plate définissant où se trouve l'article." },
+      { fr: "Dimensions de suivi", en: "Tracking dimensions", def: "Numéro de lot (Batch) et numéro de série pour la traçabilité sanitaire et réglementaire." },
+      { fr: "Statut d'inventaire", en: "Inventory status", def: "État du stock : Disponible (réservable), Bloqué (contrôle qualité), Quarantaine." },
+      { fr: "En-tête de travail", en: "Work Header", def: "Document central ordonnant un déplacement physique de stock avec statut (Open, In progress, Closed)." },
+      { fr: "Ligne de travail", en: "Work Line", def: "Action élémentaire ordonnée : toujours appariée en Prélèvement (Pick) puis Dépose (Put)." },
+      { fr: "Modèle de travail", en: "Work Template", def: "Définit les étapes et classes de travail requises pour un type d'ordre (PO, SO, REPLEN)." },
+      { fr: "Directive d'emplacement", en: "Location Directive", def: "Règle de décision algorithmique déterminant où prélever ou déposer le stock selon des filtres et priorités." },
+      { fr: "Vague de préparation", en: "Wave", def: "Regroupement d'expéditions lancé simultanément pour optimiser les parcours de prélèvement." },
+      { fr: "Expédition", en: "Shipment", def: "Regroupement des lignes de commande d'un client partant vers la même destination." },
+      { fr: "Chargement", en: "Load", def: "Contenu physique complet affecté à un moyen de transport ou camion d'un transporteur (Carrier)." },
+      { fr: "Réapprovisionnement", en: "Replenishment", def: "Transfert interne du stock de réserve (BULK) vers les zones de prélèvement rapide (PICK)." },
+      { fr: "Inventaire tournant", en: "Cycle Counting", def: "Comptage physique régulier d'emplacements sans interruption de l'activité globale." },
+      { fr: "FEFO", en: "First Expired, First Out", def: "Règle logistique imposant de prélever en priorité le lot dont la date de péremption est la plus proche." },
+      { fr: "Bon de livraison", en: "Packing slip / Ship confirm", def: "Confirmation de chargement sortant définitivement les articles du stock de l'entrepôt." }
+    ];
+
     const TRAINING_LESSONS = [
       {
         id: 1,
-        title: "L'entrepôt en cinq mots",
-        concept: "Dans un système WMS (Warehouse Management System), chaque article possède un identifiant unique (le SKU). L'espace est découpé en zones selon la nature des produits, puis en emplacements adressés avec une capacité précise. Les quais (Réception et Expédition) sont les sas d'échange avec l'extérieur.",
+        title: "1. La hiérarchie organisationnelle D365",
+        concept: "Dans Microsoft Dynamics 365 Supply Chain Management, la logistique repose sur une structure stricte à 5 niveaux : Entité juridique (Legal Entity, ex: FR01) → Site (ex: Ivry-sur-Seine) → Entrepôt WMS (Warehouse, ex: WH-MAIN) → Emplacement (Location, ex: A-01-01 codé Allée-Rack-Niveau) → Plaque d'immatriculation (License Plate, ex: LP00123). Cette arborescence permet de piloter des opérations multi-sites et multi-entrepôts avec une traçabilité totale.",
         glossary: [
-          { term: "SKU (Stock Keeping Unit)", def: "Référence unique identifiant un produit spécifique." },
-          { term: "Emplacement", def: "Adresse physique exacte d'une étagère ou case de stockage (ex: A-01)." },
-          { term: "Zone", def: "Regroupement logique (ex: A pour l'épicerie, B pour les emballages)." },
-          { term: "Quai (Dock)", def: "Zone tampon d'arrivée (Réception) ou de départ (Expédition)." },
-          { term: "Stock", def: "Quantité physique disponible par article et par emplacement." }
+          { term: "Legal Entity (Entité juridique)", def: "Société légale déclarant le bilan comptable (ex: FR01 Maison Lumière SAS)." },
+          { term: "Site", def: "Implantation géographique ou campus regroupant un ou plusieurs entrepôts." },
+          { term: "Warehouse (Entrepôt WMS)", def: "Unité physique de stockage gérée avec les fonctionnalités avancées WMS." },
+          { term: "Location (Emplacement)", def: "Coordonnée tridimensionnelle standardisée (Allée-Rack-Niveau-Position)." },
+          { term: "License Plate (Plaque LP)", def: "Identifiant unique de palette/carton permettant de tracer et déplacer des unités en bloc." }
         ],
-        missionText: "Ouvrez l'onglet « Stock » pour visualiser les articles en rayon et localiser les deux quais.",
+        missionText: "Consultez l'en-tête de l'application : observez l'entité FR01, le site Ivry, et basculez l'entrepôt actif vers WH-MAIN ou WH-RETAIL.",
         targetTab: "stock",
         checkCompleted: (state, training, ui) => ui.activeTab === "stock" || !!training.visitedStockTab,
-        question: "Que représente le sigle « SKU » dans un entrepôt ?",
+        question: "Dans D365, quelle est la hiérarchie correcte du plus global au plus précis ?",
         options: [
-          "Le numéro d'immatriculation du camion de livraison",
-          "La référence unique d'un produit (Stock Keeping Unit)",
-          "Le poids maximal supporté par un chariot élévateur"
+          "Emplacement → Entrepôt → Plaque LP → Site → Entité juridique",
+          "Entité juridique → Site → Entrepôt → Emplacement → Plaque LP",
+          "Site → Entité juridique → Emplacement → Plaque LP → Entrepôt"
         ],
         correctIndex: 1,
-        explanation: "Le SKU (Stock Keeping Unit) permet d'identifier sans ambiguïté chaque référence de produit dans le système informatique de l'entrepôt."
+        explanation: "Dans D365 SCM, le flux organisationnel descend de l'Entité juridique vers le Site, puis l'Entrepôt, l'Emplacement et enfin la Plaque d'immatriculation (License Plate)."
       },
       {
         id: 2,
-        title: "Réceptionner une livraison",
-        concept: "Lorsqu'un fournisseur livre des marchandises, l'opérateur vérifie le bon de commande d'achat (PO - Purchase Order). Les quantités livrées sont enregistrées et déposées temporairement sur le quai de RÉCEPTION pour vérification avant leur mise en stock.",
+        title: "2. Paramétrage entrepôt & Statuts d'inventaire",
+        concept: "Les emplacements sont classés par Types (Réception, Masse BULK, Picking, Expédition) et par Profils (Location Profiles) qui définissent si le mélange d'articles est autorisé et si le suivi par Plaque (LP) est obligatoire. Le stock physique disponible (On-hand) est gouverné par 7 dimensions : Article × Site × Entrepôt × Emplacement × Plaque LP × Lot × Statut d'inventaire. Un stock au statut 'Bloqué' ou 'Quarantaine' ne peut jamais être réservé ni prélevé pour une commande client.",
         glossary: [
-          { term: "PO (Purchase Order)", def: "Commande d'achat passée auprès d'un fournisseur." },
-          { term: "Quai Réception", def: "Zone de déchargement où le stock entre dans le WMS." },
-          { term: "Rapproché commande", def: "Comparaison entre quantité commandée et quantité réellement livrée." }
+          { term: "Location Profile", def: "Définit les règles d'alvéole : mélange de produits, obligation de LP, méthode de capacité." },
+          { term: "Zone & Zone Group", def: "Regroupement d'emplacements utilisé par les algorithmes de directives (ex: ZG-STORAGE)." },
+          { term: "Inventory Status", def: "Statut qualité : Disponible, Bloqué, Quarantaine. Le stock bloqué est exclu des allocations." },
+          { term: "Stock disponible (On-hand)", def: "Quantité physique réelle diminuée des réservations fermes sur les commandes." }
         ],
-        missionText: "Allez dans l'onglet « Réception » et réceptionnez la ligne de Café (150 unités) de la commande PO-1001.",
+        missionText: "Dans l'onglet « Stock », trouvez une palette au statut Disponible et cliquez sur « Bloquer » pour observer le recalcul immédiat du stock réservable.",
+        targetTab: "stock",
+        checkCompleted: (state) => {
+          return state.stock.some(s => s.status === "Bloqué" || s.status === "Quarantaine");
+        },
+        question: "Que se passe-t-il lorsqu'un lot passe au statut d'inventaire 'Bloqué' dans D365 ?",
+        options: [
+          "Il est immédiatement détruit physiquement",
+          "Il reste physiquement en stock mais est exclu de toute réservation et picking",
+          "Il est expédié automatiquement au fournisseur"
+        ],
+        correctIndex: 1,
+        explanation: "Le statut Bloqué préserve la quantité physique mais interdit au moteur de réservation et d'allocation WMS de proposer ces unités aux préparateurs."
+      },
+      {
+        id: 3,
+        title: "3. Réception fournisseur & Plaques LP",
+        concept: "Lors de la réception d'une commande d'achat (PO - Purchase Order), la marchandise est enregistrée sur le quai de Réception. D365 attribue immédiatement une Plaque d'immatriculation (License Plate) à chaque palette ou contenant reçu. Pour les produits traçables (comme le café), un numéro de lot avec DLUO est capturé pour garantir la règle FEFO (First Expired, First Out).",
+        glossary: [
+          { term: "Purchase Order (PO)", def: "Commande d'achat fournisseur à réceptionner au quai RECEPTION." },
+          { term: "Génération de LP", def: "Création automatique d'un numéro d'immatriculation palette dès le déchargement." },
+          { term: "Lot & FEFO", def: "Traçabilité des denrées périssables garantissant la sortie des lots les plus anciens d'abord." }
+        ],
+        missionText: "Allez dans l'onglet « Réception » et réceptionnez la livraison de café sur la commande PO-1001.",
         targetTab: "reception",
         checkCompleted: (state) => {
           const po = state.purchaseOrders.find(p => p.id === "PO-1001");
           const line = po && po.lines.find(l => l.sku === "CAF-1KG");
           return line && line.received > 0;
         },
-        question: "Où se trouvent les marchandises immédiatement après leur déchargement du camion ?",
+        question: "Quel est le rôle fondamental d'une License Plate (LP) générée en réception ?",
         options: [
-          "Directement sur le quai de RÉCEPTION",
-          "Sur le quai d'EXPÉDITION pour être vendues",
-          "Dispersées au hasard dans les allées"
-        ],
-        correctIndex: 0,
-        explanation: "Les marchandises entrent obligatoirement par le quai de Réception, servant de zone tampon avant d'être affectées à un emplacement de stockage."
-      },
-      {
-        id: 3,
-        title: "Le rangement (Putaway)",
-        concept: "Le « Putaway » est l'opération consistant à déplacer les marchandises du quai de réception vers leur emplacement de stockage définitif. Le WMS applique des règles intelligentes : privilégier les emplacements contenant déjà la même référence (consolidation) et respecter la capacité maximale.",
-        glossary: [
-          { term: "Putaway (Rangement)", def: "Déplacement dirigé du quai vers un emplacement de stockage." },
-          { term: "Consolidation", def: "Regrouper les mêmes articles ensemble pour optimiser l'espace." },
-          { term: "Capacité", def: "Nombre maximal d'unités qu'un emplacement peut physiquement accueillir." }
-        ],
-        missionText: "Confirmez le rangement de la tâche de café générée lors de la réception.",
-        targetTab: "reception",
-        checkCompleted: (state) => {
-          return state.tasks.some(t => t.type === "putaway" && t.sku === "CAF-1KG" && t.done);
-        },
-        question: "Pourquoi le WMS suggère-t-il en priorité un emplacement contenant déjà le même produit ?",
-        options: [
-          "Parce que la législation interdit le stockage multi-produits",
-          "Pour consolider le stock et faciliter les futurs prélèvements",
-          "Pour forcer l'opérateur à remplir les étagères du fond"
+          "Calculer les frais de douane",
+          "Identifier de manière unique le contenant/palette et déplacer tout son contenu en une seule opération",
+          "Fixer le prix de vente unitaire du produit"
         ],
         correctIndex: 1,
-        explanation: "La consolidation évite la dispersion d'un même article à travers tout l'entrepôt, ce qui accélère la préparation de commandes."
+        explanation: "La plaque LP sert d'identifiant conteneur : scanner ou déplacer la LP déplace instantanément tous les articles et lots qui y sont associés."
       },
       {
         id: 4,
-        title: "Préparer une commande (Release)",
-        concept: "Une commande client (SO - Sales Order) reçue doit être « lancée » (Release). Le WMS vérifie la disponibilité en temps réel et réserve le stock. Pour maximiser la place, l'algorithme prélève en priorité dans les emplacements les moins remplis afin de libérer des cases complètes.",
+        title: "4. Le concept central de Travail (Work)",
+        concept: "Dans D365 WMS, aucun cariste ni préparateur ne déplace un produit sans un document informatique appelé Travail (Work). Un travail comporte un En-tête (Work Header avec statut Open, In progress, Closed) et des Lignes de travail (Work Lines). Ces lignes fonctionnent obligatoirement par paires ordonnées : Prélèvement (Pick) puis Dépose (Put). La règle D365 est stricte : la dépose (Put) est interdite tant que le prélèvement (Pick) n'a pas été confirmé.",
         glossary: [
-          { term: "SO (Sales Order)", def: "Commande d'un client à honorer." },
-          { term: "Release (Lancement)", def: "Affectation du stock et génération des ordres de prélèvement." },
-          { term: "Vidage d'emplacement", def: "Stratégie visant à vider les reliquats pour libérer des espaces." }
+          { term: "Work Header", def: "En-tête de travail identifiant l'ordre, l'entrepôt, l'opérateur et le statut global." },
+          { term: "Work Line (Pick)", def: "Première étape obligatoire : prélever l'article à l'emplacement d'origine." },
+          { term: "Work Line (Put)", def: "Seconde étape : déposer la marchandise à l'emplacement de transit ou cible." },
+          { term: "Work Template", def: "Modèle définissant les étapes requises selon le type de flux (ex: WT-PO-PUT)." }
         ],
-        missionText: "Dans l'onglet « Expédition », lancez la préparation de la commande SO-2001.",
-        targetTab: "expedition",
+        missionText: "Ouvrez l'onglet « Travaux (Work) », observez les travaux ouverts et validez une étape Prendre (Pick) puis Déposer (Put).",
+        targetTab: "travaux",
         checkCompleted: (state) => {
-          const so = state.salesOrders.find(s => s.id === "SO-2001");
-          return so && so.status !== "open";
+          return (state.works || []).some(w => w.status === "Closed" || w.lines.some(l => l.status === "Closed"));
         },
-        question: "Dans quel ordre le WMS sélectionne-t-il les emplacements lors du lancement d'une commande ?",
+        question: "Quelle règle fondamentale régit les paires de lignes de travail dans D365 WMS ?",
         options: [
-          "Il tire au sort les emplacements",
-          "Il prend en priorité dans les emplacements les moins remplis pour les libérer",
-          "Il prend obligatoirement dans les emplacements les plus pleins"
+          "On peut déposer (Put) avant de prélever (Pick)",
+          "La ligne Put ne peut être exécutée que lorsque la ligne Pick correspondante est clôturée (Closed)",
+          "Les lignes Pick et Put s'exécutent obligatoirement le jour suivant"
         ],
         correctIndex: 1,
-        explanation: "Vider en priorité les emplacements contenant de petites quantités permet de libérer complètement des emplacements pour de nouveaux réassorts."
+        explanation: "Un opérateur ne peut physiquement déposer un article qu'après l'avoir prélevé dans l'emplacement source : D365 verrouille la ligne Put tant que le Pick n'est pas Closed."
       },
       {
         id: 5,
-        title: "Le prélèvement (Picking)",
-        concept: "Le « Picking » est la collecte physique des articles par le préparateur dans les allées. Chaque article prélevé est acheminé vers le quai d'EXPÉDITION. Lorsque toutes les lignes d'une commande sont prélevées, celle-ci passe au statut « Prélevée » (Picked).",
+        title: "5. Directives d'emplacement (Location Directives)",
+        concept: "Comment le WMS choisit-il où ranger ou où prélever ? Ce ne sont pas des règles figées, mais des Directives d'emplacement (Location Directives). Chaque directive possède un numéro de séquence (10, 20...), un type (Put ou Pick), une requête et une zone cible. Le système évalue les directives dans l'ordre croissant de séquence jusqu'à trouver un emplacement éligible et respectant les capacités. Chaque ligne de travail affiche la directive qui l'a guidée.",
         glossary: [
-          { term: "Picking (Prélèvement)", def: "Action de collecter les articles en rayon selon la liste de travail." },
-          { term: "Quai Expédition", def: "Zone tampon où les commandes prélevées sont regroupées et emballées." },
-          { term: "Statut Picked", def: "Indique que l'ensemble des articles d'une commande a été réuni." }
+          { term: "Location Directive", def: "Règle de sélection d'emplacement paramétrable selon des critères d'ordre et de priorité." },
+          { term: "Séquence", def: "Ordre de priorité d'évaluation des directives (10 est évalué avant 20)." },
+          { term: "Consolidation SKU", def: "Stratégie cherchant en priorité une case contenant déjà le même produit." },
+          { term: "Explication de directive", def: "Traçabilité affichant explicitement quelle règle a guidé l'algorithme." }
         ],
-        missionText: "Confirmez toutes les tâches de prélèvement associées à la commande SO-2001.",
-        targetTab: "expedition",
+        missionText: "Rendez-vous dans « Configuration WMS », examinez les Directives d'emplacement et modifiez la priorité avec les boutons Haut/Bas.",
+        targetTab: "config",
         checkCompleted: (state) => {
-          const so = state.salesOrders.find(s => s.id === "SO-2001");
-          return so && (so.status === "picked" || so.status === "shipped");
+          return (state.locationDirectives || []).length > 0;
         },
-        question: "Où sont déposés les produits prélevés en rayon par le préparateur ?",
+        question: "Si la directive 10 vise la zone BULK et la directive 20 la zone PICK, quel emplacement le WMS proposera-t-il en premier ?",
         options: [
-          "Dans son vestiaire",
-          "Sur le quai de RÉCEPTION",
-          "Sur le quai d'EXPÉDITION"
+          "La zone PICK car 20 est supérieur à 10",
+          "La zone BULK car la directive de plus petite séquence (10) est évaluée en priorité",
+          "Il choisit au hasard entre les deux"
         ],
-        correctIndex: 2,
-        explanation: "Les articles prélevés convergent tous vers le quai d'Expédition pour être consolidés, emballés et étiquetés."
+        correctIndex: 1,
+        explanation: "Dans D365, les directives sont scannées par ordre croissant de séquence : la directive 10 est testée avant la directive 20."
       },
       {
         id: 6,
-        title: "L'expédition (Ship)",
-        concept: "L'étape finale est le chargement dans le camion du transporteur. L'action d'expédier déstocke définitivement la marchandise du quai d'expédition et clôture la commande (statut Shipped). Le cycle de vente dans l'entrepôt est alors complet.",
+        title: "6. Vagues et flux de sortie (Waves & Outbound)",
+        concept: "Le flux de sortie dans D365 structure les commandes clients (Sales Orders) en Expéditions (Shipments) et Chargements transporteur (Loads). Pour optimiser les déplacements, les expéditions sont regroupées dans une Vague de préparation (Wave). Lors de l'exécution de la vague (Release & Process Wave), le système alloue le stock (règle FEFO), réserve les unités et génère l'ensemble des travaux de prélèvement (Pick Work).",
         glossary: [
-          { term: "Shipping (Expédition)", def: "Remise formelle du colis au transporteur et clôture de la commande." },
-          { term: "Déstockage final", def: "Sortie définitive des articles du stock informatique." }
+          { term: "Load (Chargement)", def: "Contenu physique affecté à un transporteur et à son véhicule." },
+          { term: "Shipment (Expédition)", def: "Ensemble des lignes d'une commande préparées pour un même destinataire." },
+          { term: "Wave (Vague)", def: "Lot de commandes libérées ensemble pour exécuter un prélèvement groupé." },
+          { term: "Ship Confirm", def: "Validation finale du départ camion déstockant définitivement la marchandise." }
         ],
-        missionText: "Cliquez sur « Expédier » pour la commande SO-2001 prélevée.",
+        missionText: "Allez sur « Expédition », ouvrez le sous-onglet « Vagues d'expédition » et cliquez sur « Lancer la vague » pour générer les travaux.",
         targetTab: "expedition",
         checkCompleted: (state) => {
-          const so = state.salesOrders.find(s => s.id === "SO-2001");
-          return so && so.status === "shipped";
+          return (state.waves || []).some(w => w.status === "Executed");
         },
-        question: "Que se passe-t-il informatiquement lors de l'expédition d'une commande ?",
+        question: "Quel événement déclenche la création des travaux de prélèvement (Pick Work) dans le flux de sortie D365 ?",
         options: [
-          "Les produits sont retirés définitivement du stock et le statut passe à 'shipped'",
-          "La commande est automatiquement dupliquée pour le mois suivant",
-          "Les articles reviennent au quai de réception"
+          "La saisie du devis client",
+          "Le traitement et l'exécution de la vague (Wave processing)",
+          "Le retour du camion à vide"
         ],
-        correctIndex: 0,
-        explanation: "L'expédition sort physiquement et informatiquement les articles de l'entrepôt, clôturant ainsi le cycle logistique."
+        correctIndex: 1,
+        explanation: "C'est l'exécution de la vague (Wave Release / Process) qui exécute l'allocation et crée concrètement les ordres de travail de prélèvement."
       },
       {
         id: 7,
-        title: "Gérer une rupture (Shortage)",
-        concept: "Que faire si un client commande plus d'articles que ce qui est disponible en rayon ? Le WMS alloue tout le stock disponible et consigne immédiatement une rupture (Shortage) sur le reliquat. Cela permet d'alerter les approvisionnements sans bloquer la logistique.",
+        title: "7. Réapprovisionnement Min/Max (Replenishment)",
+        concept: "Pour éviter les ruptures au niveau des alvéoles de prélèvement rapide (Zone PICK), D365 gère des seuils Min/Max. Dès que le stock d'un article descend sous le seuil minimum dans une case de picking, un travail de réapprovisionnement (Work Template WT-REPLEN) est généré automatiquement ou sur demande pour transférer une palette de la réserve (Zone BULK) vers le picking.",
         glossary: [
-          { term: "Shortage (Rupture)", def: "Différence entre la quantité demandée et le stock physique disponible." },
-          { term: "Reliquat", def: "Quantité en attente de réapprovisionnement ultérieur." },
-          { term: "Stock disponible", def: "Stock physique moins le stock déjà réservé par d'autres commandes." }
+          { term: "Replenishment (Réappro)", def: "Mouvement interne de stock de la réserve vers l'emplacement de prélèvement." },
+          { term: "Seuil Min/Max", def: "Paramètre déclenchant un réapprovisionnement dès que le stock atteint le seuil bas." },
+          { term: "Zone BULK vs PICK", def: "La réserve accueille les palettes complètes ; le picking permet la prise unitaire." }
         ],
-        missionText: "Lancez la préparation de SO-2003 (demande de 100 chocolats) et observez la rupture de 20 unités détectée.",
-        targetTab: "expedition",
+        missionText: "Observez dans l'onglet Travaux ou Configuration les modèles de travail prévus pour le réapprovisionnement (WT-REPLEN).",
+        targetTab: "travaux",
         checkCompleted: (state) => {
-          const so = state.salesOrders.find(s => s.id === "SO-2003");
-          return so && so.status !== "open" && so.shortages && so.shortages["CHO-500"] > 0;
+          return (state.workTemplates || []).some(wt => wt.id === "WT-REPLEN");
         },
-        question: "Si un client demande 100 unités mais que seules 80 sont disponibles, que fait le WMS ?",
+        question: "Quel est l'objectif du réapprovisionnement d'emplacement (Replenishment) dans D365 ?",
         options: [
-          "Il refuse la commande et supprime le compte client",
-          "Il alloue les 80 unités et enregistre une rupture de 20 unités pour réapprovisionnement",
-          "Il invente les 20 unités manquantes dans le système"
+          "Vider complètement l'entrepôt pour le nettoyage",
+          "Garantir que les zones de prélèvement (PICK) ne tombent jamais à court d'articles pendant la préparation",
+          "Augmenter artificiellement le nombre de palettes"
         ],
         correctIndex: 1,
-        explanation: "Le WMS optimise le taux de service : il sert tout ce qui est possible immédiatement et trace le manquant pour réapprovisionnement."
+        explanation: "Le réapprovisionnement transfère à temps le stock de réserve vers les cases de picking afin que les préparateurs ne soient jamais bloqués."
       },
       {
         id: 8,
-        title: "L'inventaire tournant (Cycle Counting)",
-        concept: "Dans un entrepôt moderne, on ne bloque pas l'activité pour un inventaire annuel unique. On pratique l'inventaire tournant : un comptage régulier d'emplacements ciblés. En cas de différence entre le stock théorique et le comptage physique, un ajustement avec traçabilité est enregistré.",
+        title: "8. Inventaire tournant & Journal des écarts",
+        concept: "D365 remplace l'inventaire annuel bloquant par des travaux de comptage (Count Work) et des inventaires tournants (Cycle Counting). L'opérateur compte physiquement l'emplacement ciblé. Si un écart apparaît entre le stock réel et le stock théorique, le système crée une proposition dans un Journal d'ajustement d'inventaire, enregistrant le motif et la variance avant de corriger le stock On-hand.",
         glossary: [
-          { term: "Cycle Counting (Inventaire tournant)", def: "Comptage continu et régulier d'une fraction des emplacements." },
-          { term: "Écart d'inventaire", def: "Différence entre le stock compté et le stock théorique informatique." },
-          { term: "Ajustement de stock", def: "Mise à niveau du système pour refléter la réalité physique du terrain." }
+          { term: "Cycle Counting", def: "Comptage régulier d'un échantillon d'emplacements sans fermer l'entrepôt." },
+          { term: "Inventory Adjustment Journal", def: "Journal traçant les pertes ou découvertes avec explication financière." },
+          { term: "Variance (Écart)", def: "Différence arithmétique entre quantité théorique système et quantité comptée." }
         ],
-        missionText: "Rendez-vous dans l'onglet « Inventaire », saisissez un comptage avec écart sur un emplacement et validez l'ajustement.",
+        missionText: "Allez dans « Inventaire », sélectionnez un emplacement et validez un ajustement avec écart pour mettre à jour le stock.",
         targetTab: "inventaire",
         checkCompleted: (state) => {
           return !!state.inventoryAdjusted || state.movementLogs.some(l => l.text.includes("Ajustement d'inventaire"));
         },
-        question: "Quel est l'avantage principal de l'inventaire tournant par rapport à l'inventaire annuel ?",
+        question: "Que consigne le journal d'ajustement lors de la validation d'un inventaire tournant avec écart ?",
         options: [
-          "Il évite de fermer l'entrepôt et détecte les erreurs au fil de l'eau",
-          "Il permet de licencier tous les préparateurs",
-          "Il supprime totalement le besoin de compter les produits"
+          "Le mot de passe de l'administrateur",
+          "L'écart (variance positive ou négative), l'horodatage et la mise à jour du stock physique",
+          "Une facture envoyée au client final"
         ],
-        correctIndex: 0,
-        explanation: "L'inventaire tournant garantit la précision des stocks en continu sans interrompre les expéditions de l'entrepôt."
+        correctIndex: 1,
+        explanation: "Le journal d'ajustement assure une traçabilité comptable et logistique stricte des pertes ou gains constatés sur le terrain."
+      },
+      {
+        id: 9,
+        title: "9. Exécution mobile & Clôture de l'expédition",
+        concept: "Dans un entrepôt D365, les opérateurs n'utilisent pas d'écrans de bureau complexes mais l'Application mobile Warehouse Management. Ils scannent les codes-barres de l'emplacement et de la License Plate pour valider les étapes Pick et Put en temps réel. Une fois la commande prélevée et posée sur le quai d'EXPÉDITION, la confirmation d'expédition (Ship Confirm) génère le bon de livraison et solde l'expédition.",
+        glossary: [
+          { term: "Warehouse Mobile App", def: "Interface terminal code-barres / RF guidant l'opérateur pas à pas." },
+          { term: "Scan-style validation", def: "Contrôle détrompeur par scan de l'emplacement et de la plaque LP." },
+          { term: "Packing Slip (Bon de livraison)", def: "Document final confirmant la sortie légale et physique du stock." }
+        ],
+        missionText: "Vérifiez dans « Expédition » qu'une commande au statut 'picked' peut être finalisée via 'Confirmer expédition (Ship Confirm)'.",
+        targetTab: "expedition",
+        checkCompleted: (state) => {
+          return state.salesOrders.some(s => s.status === "shipped");
+        },
+        question: "Quelle action finale déclenche la sortie comptable et la génération du bon de livraison (Packing Slip) ?",
+        options: [
+          "La création de la commande client",
+          "La confirmation d'expédition (Ship Confirm)",
+          "Le rangement de la marchandise en réserve"
+        ],
+        correctIndex: 1,
+        explanation: "La confirmation d'expédition valide le départ du camion et génère le document officiel de livraison déstockant définitivement les produits."
       }
     ];
 
@@ -1296,6 +1342,30 @@
               </div>
             </div>
           ` : ''}
+        </div>
+
+        <!-- D365 Theoretical Foundations & Lexique -->
+        <div class="card" style="margin-bottom: 20px; background-color: var(--pastel-blue-subtle);">
+          <div class="card-header" style="background-color: transparent; border-bottom: 1.5px solid var(--border-color);">
+            <span class="card-title">${getIcon("award")} Dictionnaire & Référentiel D365 Supply Chain Management</span>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">${D365_FULL_GLOSSARY.length} termes officiels</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+              Ce simulateur utilise la terminologie et les concepts réels de <strong>Microsoft Dynamics 365 Supply Chain Management (WMS)</strong>. Voici les équivalences clés entre le français et les termes techniques D365 :
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+              ${D365_FULL_GLOSSARY.map(g => `
+                <div style="background-color: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: var(--primary-text);">${g.fr}</strong>
+                    <span class="badge badge-neutral" style="font-size: 10.5px; font-family: monospace;">${g.en}</span>
+                  </div>
+                  <div style="color: var(--text-muted); font-size: 11px; line-height: 1.35;">${g.def}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </div>
 
         <div class="lessons-list">
