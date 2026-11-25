@@ -1205,30 +1205,48 @@ button.hamburger-btn,
 @media (max-width: 640px) {
   /* Header & Brand */
   .header-top {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .brand {
+    gap: 6px;
+    flex-shrink: 0;
   }
   .brand-title {
-    font-size: 16px;
+    font-size: 15px;
   }
   .brand-subtitle {
     display: none; /* Hide subtitle to keep header compact on narrow phones */
   }
   .brand-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 15px;
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+  .d365-context-badge {
+    padding: 3px 6px;
+    gap: 4px;
+    box-shadow: 1.5px 1.5px 0px var(--shadow-color);
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .d365-wh-select {
+    font-size: 11px;
+    padding: 2px 4px;
+    max-width: 86px;
+    text-overflow: ellipsis;
   }
   .hide-mobile {
-    display: none !important; /* Hide button text, show only icons */
+    display: none !important; /* Hide secondary text and labels */
   }
   .header-actions {
-    gap: 6px;
+    gap: 4px;
+    flex-shrink: 0;
   }
   .header-actions button.btn {
-    padding: 6px 10px;
-    font-size: 13px;
-    min-height: 36px;
+    padding: 5px 8px;
+    font-size: 12px;
+    min-height: 32px;
   }
 
   /* Main Container */
