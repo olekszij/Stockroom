@@ -1,0 +1,1363 @@
+/* ==========================================================================
+   STOCKROOM — NEO-BRUTALISM PASTEL DESIGN SYSTEM
+   Thick contrasting borders, hard offset shadows, playful pastel palette
+   ========================================================================== */
+
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  /* Neo-Brutalist Light Palette (Warm Vanilla Canvas & Soft Pastels) */
+  --bg-body: #fbf7ee;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f4eee1;
+  --bg-surface-hover: #eae1d0;
+  
+  --text-main: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #71717a;
+  
+  --border-color: #18181b;
+  --border-subtle: #18181b;
+  
+  --shadow-color: #18181b;
+  --shadow-sm: 2px 2px 0px var(--shadow-color);
+  --shadow-md: 4px 4px 0px var(--shadow-color);
+  --shadow-lg: 6px 6px 0px var(--shadow-color);
+
+  /* Pastel Accent Colors */
+  --pastel-blue: #bae6fd;
+  --pastel-blue-dark: #0284c7;
+  --pastel-blue-subtle: #e0f2fe;
+  
+  --pastel-yellow: #fef08a;
+  --pastel-yellow-dark: #ca8a04;
+  --pastel-yellow-subtle: #fef9c3;
+  
+  --pastel-mint: #bbf7d0;
+  --pastel-mint-dark: #16a34a;
+  --pastel-mint-subtle: #dcfce7;
+  
+  --pastel-coral: #fecdd3;
+  --pastel-coral-dark: #e11d48;
+  --pastel-coral-subtle: #fee2e2;
+  
+  --pastel-lavender: #e9d5ff;
+  --pastel-lavender-dark: #9333ea;
+  --pastel-lavender-subtle: #f3e8ff;
+  
+  --pastel-peach: #fed7aa;
+  --pastel-peach-dark: #ea580c;
+  --pastel-peach-subtle: #ffedd5;
+
+  /* Functional mappings */
+  --primary: var(--pastel-blue);
+  --primary-hover: #93c5fd;
+  --primary-subtle: var(--pastel-blue-subtle);
+  --primary-text: #0c4a6e;
+  
+  --success: var(--pastel-mint);
+  --success-subtle: var(--pastel-mint-subtle);
+  --success-text: #14532d;
+  
+  --warning: var(--pastel-yellow);
+  --warning-subtle: var(--pastel-yellow-subtle);
+  --warning-text: #713f12;
+  
+  --danger: var(--pastel-coral);
+  --danger-subtle: var(--pastel-coral-subtle);
+  --danger-text: #881337;
+  
+  --focus-ring: #0284c7;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* Neo-Brutalist Dark Palette (Inky Background, Stark White Outlines & Vibrant Pastels) */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --bg-body: #121214;
+    --bg-surface: #1e1e24;
+    --bg-surface-subtle: #27272f;
+    --bg-surface-hover: #32323c;
+    
+    --text-main: #fbfbfb;
+    --text-muted: #a1a1aa;
+    --text-subtle: #71717a;
+    
+    --border-color: #fbfbfb;
+    --border-subtle: #fbfbfb;
+    
+    --shadow-color: #fbfbfb;
+    --shadow-sm: 2px 2px 0px var(--shadow-color);
+    --shadow-md: 4px 4px 0px var(--shadow-color);
+    --shadow-lg: 6px 6px 0px var(--shadow-color);
+
+    --primary: #38bdf8;
+    --primary-hover: #7dd3fc;
+    --primary-subtle: #082f49;
+    --primary-text: #e0f2fe;
+
+    --success: #4ade80;
+    --success-subtle: #052e16;
+    --success-text: #dcfce7;
+
+    --warning: #facc15;
+    --warning-subtle: #451a03;
+    --warning-text: #fef9c3;
+
+    --danger: #fb7185;
+    --danger-subtle: #4c0519;
+    --danger-text: #ffe4e6;
+
+    --pastel-blue-subtle: #0c4a6e;
+    --pastel-yellow-subtle: #713f12;
+    --pastel-mint-subtle: #14532d;
+    --pastel-coral-subtle: #881337;
+    --pastel-lavender-subtle: #581c87;
+    --pastel-peach-subtle: #7c2d12;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg-body: #121214;
+  --bg-surface: #1e1e24;
+  --bg-surface-subtle: #27272f;
+  --bg-surface-hover: #32323c;
+  
+  --text-main: #fbfbfb;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  
+  --border-color: #fbfbfb;
+  --border-subtle: #fbfbfb;
+  
+  --shadow-color: #fbfbfb;
+  --shadow-sm: 2px 2px 0px var(--shadow-color);
+  --shadow-md: 4px 4px 0px var(--shadow-color);
+  --shadow-lg: 6px 6px 0px var(--shadow-color);
+
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
+  --primary-subtle: #082f49;
+  --primary-text: #e0f2fe;
+
+  --success: #4ade80;
+  --success-subtle: #052e16;
+  --success-text: #dcfce7;
+
+  --warning: #facc15;
+  --warning-subtle: #451a03;
+  --warning-text: #fef9c3;
+
+  --danger: #fb7185;
+  --danger-subtle: #4c0519;
+  --danger-text: #ffe4e6;
+
+  --pastel-blue-subtle: #0c4a6e;
+  --pastel-yellow-subtle: #713f12;
+  --pastel-mint-subtle: #14532d;
+  --pastel-coral-subtle: #881337;
+  --pastel-lavender-subtle: #581c87;
+  --pastel-peach-subtle: #7c2d12;
+}
+
+:root[data-theme="light"] {
+  --bg-body: #fbf7ee;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f4eee1;
+  --bg-surface-hover: #eae1d0;
+  
+  --text-main: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #71717a;
+  
+  --border-color: #18181b;
+  --border-subtle: #18181b;
+  
+  --shadow-color: #18181b;
+  --shadow-sm: 2px 2px 0px var(--shadow-color);
+  --shadow-md: 4px 4px 0px var(--shadow-color);
+  --shadow-lg: 6px 6px 0px var(--shadow-color);
+
+  --primary: var(--pastel-blue);
+  --primary-hover: #93c5fa;
+  --primary-subtle: var(--pastel-blue-subtle);
+  --primary-text: #0c4a6e;
+  
+  --success: var(--pastel-mint);
+  --success-subtle: var(--pastel-mint-subtle);
+  --success-text: #14532d;
+  
+  --warning: var(--pastel-yellow);
+  --warning-subtle: var(--pastel-yellow-subtle);
+  --warning-text: #713f12;
+  
+  --danger: var(--pastel-coral);
+  --danger-subtle: var(--pastel-coral-subtle);
+  --danger-text: #881337;
+}
+
+/* Reset & Base Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-main);
+  background-color: var(--bg-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Accessibility Focus */
+:focus-visible {
+  outline: 3px solid var(--border-color);
+  outline-offset: 2px;
+}
+
+/* Vector UI Icons (Zero External Dependencies) */
+.ui-icon {
+  display: inline-block;
+  vertical-align: -2.5px;
+  width: 1.15em;
+  height: 1.15em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+button.btn .ui-icon {
+  vertical-align: -2px;
+}
+
+.nav-tab-btn .ui-icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.card-title .ui-icon {
+  width: 1.3em;
+  height: 1.3em;
+  stroke-width: 2.25;
+}
+
+/* ==========================================================================
+   HEADER & NAVIGATION (Neo-brutalist Navbar)
+   ========================================================================== */
+header.app-header {
+  background-color: var(--bg-surface);
+  border-bottom: 3px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header-top {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-main);
+}
+
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background-color: var(--pastel-yellow);
+  color: #18181b;
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+  font-size: 12px;
+  background-color: var(--pastel-mint);
+  color: #14532d;
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Tabs Bar */
+.nav-bar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4px 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav-bar-container::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.nav-tab-btn {
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s;
+}
+
+.nav-tab-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--shadow-color);
+  background-color: var(--bg-surface-subtle);
+}
+
+.nav-tab-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--shadow-color);
+}
+
+.nav-tab-btn[aria-current="page"] {
+  background-color: var(--pastel-yellow);
+  color: #18181b;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px var(--shadow-color);
+}
+
+.tab-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border: 1.5px solid var(--border-color);
+  font-weight: 800;
+}
+
+.nav-tab-btn[aria-current="page"] .tab-badge {
+  background-color: #ffffff;
+  color: #18181b;
+}
+
+/* ==========================================================================
+   LAYOUT & CONTAINERS
+   ========================================================================== */
+main.app-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  flex: 1;
+}
+
+/* Neo-Brutalist Alert Banners */
+.alert-banner {
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  border: 2px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.15s ease-in;
+}
+
+.alert-banner.danger {
+  background-color: var(--pastel-coral);
+  color: var(--danger-text);
+}
+
+.alert-banner.success {
+  background-color: var(--pastel-mint);
+  color: var(--success-text);
+}
+
+.alert-banner.info {
+  background-color: var(--pastel-blue);
+  color: var(--primary-text);
+}
+
+.alert-close-btn {
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  color: inherit;
+  box-shadow: 1px 1px 0px var(--shadow-color);
+  transition: transform 0.1s ease;
+}
+
+.alert-close-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+}
+
+/* Neo-Brutalist Cards */
+.card {
+  background-color: var(--bg-surface);
+  border: 2.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--pastel-yellow-subtle);
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* ==========================================================================
+   KPI CARDS (Multi-Pastel Neobrutalism)
+   ========================================================================== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--shadow-md);
+  background-color: var(--bg-surface);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Tint each KPI with a delightful pastel */
+.kpi-card:nth-child(1) { background-color: var(--pastel-lavender-subtle); }
+.kpi-card:nth-child(2) { background-color: var(--pastel-mint-subtle); }
+.kpi-card:nth-child(3) { background-color: var(--pastel-yellow-subtle); }
+.kpi-card:nth-child(4) { background-color: var(--pastel-blue-subtle); }
+.kpi-card:nth-child(5) { background-color: var(--pastel-peach-subtle); }
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.kpi-desc {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   WAREHOUSE MAP (Interactive Neo-Brutalist Grid)
+   ========================================================================== */
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.location-cell {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s ease;
+}
+
+.location-cell:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-md);
+}
+
+.location-cell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.location-code {
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.progress-bar-bg {
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  height: 14px;
+  overflow: hidden;
+  width: 100%;
+  padding: 1px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--primary);
+  border-right: 2px solid var(--border-color);
+  transition: width 0.3s ease;
+}
+
+.progress-bar-fill.warn {
+  background-color: var(--warning);
+}
+
+.progress-bar-fill.full {
+  background-color: var(--danger);
+}
+
+/* ==========================================================================
+   DATA TABLES (Neo-Brutalist Tables)
+   ========================================================================== */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  -webkit-overflow-scrolling: touch;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+table.data-table th, table.data-table td {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+table.data-table th {
+  background-color: var(--pastel-yellow-subtle);
+  color: var(--text-main);
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border-color);
+}
+
+table.data-table tbody tr:hover {
+  background-color: var(--bg-surface-subtle);
+}
+
+/* ==========================================================================
+   BADGES (Playful Chunky Badges)
+   ========================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1.5px solid var(--border-color);
+  box-shadow: 1.5px 1.5px 0px var(--shadow-color);
+}
+
+.badge-primary { background-color: var(--pastel-blue); color: #0c4a6e; }
+.badge-success { background-color: var(--pastel-mint); color: #14532d; }
+.badge-warning { background-color: var(--pastel-yellow); color: #713f12; }
+.badge-danger { background-color: var(--pastel-coral); color: #881337; }
+.badge-neutral { background-color: var(--bg-surface-subtle); color: var(--text-main); }
+
+/* ==========================================================================
+   BUTTONS (Tactile 3D Click Feel)
+   ========================================================================== */
+button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s;
+  white-space: nowrap;
+}
+
+button.btn:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 3.5px 3.5px 0px var(--shadow-color);
+}
+
+button.btn:active {
+  transform: translate(1.5px, 1.5px);
+  box-shadow: 0.5px 0.5px 0px var(--shadow-color);
+}
+
+button.btn-primary {
+  background-color: var(--pastel-blue);
+  color: #0c4a6e;
+}
+
+button.btn-primary:hover {
+  background-color: #93c5fd;
+}
+
+button.btn-success {
+  background-color: var(--pastel-mint);
+  color: #14532d;
+}
+
+button.btn-success:hover {
+  background-color: #86efac;
+}
+
+button.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+button.btn-secondary:hover {
+  background-color: var(--bg-surface-subtle);
+}
+
+button.btn-sm {
+  padding: 5px 12px;
+  font-size: 12.5px;
+}
+
+button.btn-danger {
+  background-color: var(--pastel-coral);
+  color: var(--danger-text);
+}
+
+button.btn-danger:hover {
+  background-color: #fca5a5;
+}
+
+/* Inputs & Selects */
+input.input-text, select.input-select {
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  max-width: 100%;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+input.input-text:focus, select.input-select:focus {
+  outline: none;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--border-color);
+}
+
+input.input-number {
+  width: 85px;
+  text-align: right;
+}
+
+/* ==========================================================================
+   TRAINING COURSE (Neo-Brutalist Cards & Quizzes)
+   ========================================================================== */
+.course-header {
+  background-color: var(--pastel-yellow-subtle);
+  border: 2.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.course-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.lesson-card {
+  border: 2.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.lesson-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.lesson-card.completed {
+  border-left: 10px solid var(--pastel-mint);
+}
+
+.lesson-card.active {
+  box-shadow: var(--shadow-lg);
+}
+
+.lesson-toggle-btn {
+  width: 100%;
+  text-align: left;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+
+.lesson-toggle-btn:hover {
+  background-color: var(--bg-surface-subtle);
+}
+
+.lesson-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lesson-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.lesson-card.completed .lesson-num {
+  background-color: var(--pastel-mint);
+  color: #14532d;
+}
+
+.lesson-card.active .lesson-num {
+  background-color: var(--pastel-yellow);
+  color: #713f12;
+}
+
+.lesson-title-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.lesson-content {
+  padding: 0 20px 24px;
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.concept-box {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-main);
+  padding-top: 18px;
+}
+
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+  background-color: var(--bg-surface-subtle);
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.glossary-term {
+  font-size: 13px;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-shadow: 2px 2px 0px var(--shadow-color);
+}
+
+.glossary-term strong {
+  color: #0c4a6e;
+  display: block;
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.mission-box {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background-color: var(--pastel-blue-subtle);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quiz-box {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.quiz-options {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quiz-option-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: transform 0.1s ease, background-color 0.15s;
+}
+
+.quiz-option-label:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--shadow-color);
+  background-color: var(--bg-surface-subtle);
+}
+
+.quiz-feedback {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   SELF-TESTS & FOOTER
+   ========================================================================== */
+#test-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: var(--bg-surface);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: 18px;
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+footer.app-footer {
+  border-top: 3px solid var(--border-color);
+  background-color: var(--bg-surface);
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: auto;
+}
+
+footer .footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   RETINA & HIGH-DPI SCALING (Crisp Bold Neobrutalism on Retina)
+   ========================================================================== */
+@media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi), (min-resolution: 1.5dppx) {
+  body {
+    font-size: 15.5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .brand-title { font-size: 19px; }
+  .brand-subtitle { font-size: 13px; }
+  .brand-icon { width: 36px; height: 36px; font-size: 19px; }
+  .nav-tab-btn { font-size: 14.5px; padding: 9px 16px; }
+  .tab-badge { font-size: 12px; padding: 2px 7px; }
+  .card-title { font-size: 16px; }
+  .kpi-label { font-size: 13px; }
+  .kpi-value { font-size: 30px; }
+  .kpi-desc { font-size: 12px; }
+  .location-code { font-size: 16px; }
+  table.data-table { font-size: 14.5px; }
+  table.data-table th { font-size: 13px; padding: 13px 16px; }
+  table.data-table td { padding: 13px 16px; }
+  .badge { font-size: 12px; padding: 3px 9px; }
+  button.btn { font-size: 14px; padding: 9px 18px; }
+  button.btn-sm { font-size: 13px; padding: 6px 13px; }
+  input.input-text, select.input-select { font-size: 14.5px; padding: 8px 12px; }
+  input.input-number { width: 95px; }
+  .lesson-num { width: 32px; height: 32px; font-size: 14px; }
+  .lesson-title-text { font-size: 17px; }
+  .concept-box { font-size: 15px; line-height: 1.65; }
+  .glossary-term { font-size: 13.5px; }
+  .mission-box p, .quiz-box p { font-size: 15px; line-height: 1.6; }
+  .quiz-option-label { font-size: 14.5px; padding: 11px 16px; }
+  .alert-banner { font-size: 15px; }
+  .progress-bar-bg { height: 16px; }
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi), (min-resolution: 2dppx) {
+  body {
+    font-size: 16px;
+  }
+  .brand-title { font-size: 20px; }
+  .nav-tab-btn { font-size: 15px; padding: 10px 18px; }
+  table.data-table { font-size: 15px; }
+  table.data-table th { font-size: 13.5px; }
+  .card-title { font-size: 16.5px; }
+  .kpi-value { font-size: 32px; }
+  .lesson-title-text { font-size: 17.5px; }
+  .concept-box { font-size: 15.5px; }
+  .glossary-term { font-size: 14px; }
+  button.btn { font-size: 14.5px; }
+}
+
+/* Manual Large Text Mode */
+:root[data-text-scale="large"] body {
+  font-size: 17px;
+}
+:root[data-text-scale="large"] .brand-title { font-size: 21px; }
+:root[data-text-scale="large"] .brand-subtitle { font-size: 14px; }
+:root[data-text-scale="large"] .nav-tab-btn { font-size: 15.5px; padding: 11px 18px; }
+:root[data-text-scale="large"] .tab-badge { font-size: 13px; }
+:root[data-text-scale="large"] .card-title { font-size: 17.5px; }
+:root[data-text-scale="large"] .kpi-label { font-size: 14px; }
+:root[data-text-scale="large"] .kpi-value { font-size: 34px; }
+:root[data-text-scale="large"] .kpi-desc { font-size: 13px; }
+:root[data-text-scale="large"] .location-code { font-size: 17px; }
+:root[data-text-scale="large"] table.data-table { font-size: 15.5px; }
+:root[data-text-scale="large"] table.data-table th { font-size: 14px; padding: 14px 18px; }
+:root[data-text-scale="large"] table.data-table td { padding: 14px 18px; }
+:root[data-text-scale="large"] .badge { font-size: 13px; padding: 4px 10px; }
+:root[data-text-scale="large"] button.btn { font-size: 15px; padding: 10px 20px; }
+:root[data-text-scale="large"] button.btn-sm { font-size: 14px; padding: 7px 14px; }
+:root[data-text-scale="large"] input.input-text, :root[data-text-scale="large"] select.input-select { font-size: 15.5px; padding: 9px 14px; }
+:root[data-text-scale="large"] input.input-number { width: 105px; }
+:root[data-text-scale="large"] .lesson-title-text { font-size: 18.5px; }
+:root[data-text-scale="large"] .concept-box { font-size: 16.5px; line-height: 1.7; }
+:root[data-text-scale="large"] .glossary-term { font-size: 14.5px; }
+:root[data-text-scale="large"] .mission-box p, :root[data-text-scale="large"] .quiz-box p { font-size: 16px; line-height: 1.6; }
+:root[data-text-scale="large"] .quiz-option-label { font-size: 15px; padding: 12px 18px; }
+:root[data-text-scale="large"] .alert-banner { font-size: 15.5px; }
+
+/* Manual Normal (Compact) Text Mode */
+:root[data-text-scale="normal"] body {
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Tablets & Mobile Phones)
+   ========================================================================== */
+
+/* Tablet & Mobile shared improvements */
+@media (max-width: 1024px) {
+  .header-top {
+    padding: 10px 14px;
+  }
+  main.app-container {
+    padding: 18px 14px 40px;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+  }
+  .map-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Tablet specific (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .map-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .glossary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile Devices (<= 640px) */
+@media (max-width: 640px) {
+  /* Header & Brand */
+  .header-top {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .brand-title {
+    font-size: 16px;
+  }
+  .brand-subtitle {
+    display: none; /* Hide subtitle to keep header compact on narrow phones */
+  }
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+  .hide-mobile {
+    display: none !important; /* Hide button text, show only icons */
+  }
+  .header-actions {
+    gap: 6px;
+  }
+  .header-actions button.btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  /* Navigation Tabs */
+  .nav-bar-container {
+    padding: 2px 12px 10px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .nav-tabs {
+    gap: 6px;
+  }
+  .nav-tab-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 40px;
+    flex-shrink: 0;
+  }
+  .tab-badge {
+    font-size: 10.5px;
+    padding: 1px 5px;
+  }
+
+  /* Main Container */
+  main.app-container {
+    padding: 14px 10px 36px;
+  }
+
+  /* Banners */
+  .alert-banner {
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  /* KPI Grid */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  /* 5th KPI card spans full width for visual balance */
+  .kpi-card:nth-child(5) {
+    grid-column: span 2;
+  }
+  .kpi-card {
+    padding: 12px 14px;
+    gap: 4px;
+  }
+  .kpi-value {
+    font-size: 22px;
+  }
+  .kpi-label {
+    font-size: 11px;
+  }
+  .kpi-desc {
+    font-size: 10.5px;
+  }
+
+  /* Cards */
+  .card {
+    border-radius: var(--radius-sm);
+    margin-bottom: 18px;
+  }
+  .card-header {
+    padding: 10px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .card-header > div {
+    width: 100%;
+  }
+  .card-body {
+    padding: 14px;
+  }
+
+  /* Warehouse Map */
+  .map-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .location-cell {
+    padding: 12px;
+  }
+
+  /* Tables: smooth horizontal touch scroll with clear container boundaries */
+  .table-container {
+    border-radius: var(--radius-sm);
+    box-shadow: 1.5px 1.5px 0 var(--border-color);
+  }
+  table.data-table {
+    min-width: 520px; /* guarantees readable columns without wrapping into 1 char */
+    font-size: 13px;
+  }
+  table.data-table th, table.data-table td {
+    padding: 10px 12px;
+  }
+
+  /* Training Course */
+  .course-header {
+    padding: 16px 14px;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .course-headline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .course-headline > div:last-child {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lesson-card {
+    margin-bottom: 12px;
+  }
+  .lesson-toggle-btn {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .lesson-title-text {
+    font-size: 14.5px;
+  }
+  .lesson-num {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .lesson-content {
+    padding: 0 14px 18px;
+    gap: 14px;
+  }
+  .concept-box {
+    font-size: 13.5px;
+    padding-top: 14px;
+  }
+  .glossary-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  .glossary-term {
+    padding: 8px 10px;
+  }
+  .mission-box, .quiz-box {
+    padding: 12px 14px;
+  }
+  .quiz-option-label {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Floating Test Panel */
+  #test-panel {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    width: auto;
+    max-height: 80vh;
+    padding: 14px;
+  }
+
+  /* Footer */
+  footer.app-footer {
+    padding: 14px 12px;
+  }
+  footer .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
+  }
+}
+
+/* Very Small Phones (<= 380px) */
+@media (max-width: 380px) {
+  .brand-title {
+    font-size: 15px;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-card:nth-child(5) {
+    grid-column: span 1;
+  }
+  .nav-tab-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}
