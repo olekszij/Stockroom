@@ -15,7 +15,26 @@
         <div class="brand-icon">S</div>
         <div>
           <span class="brand-title">Stockroom</span>
-          <span class="brand-subtitle">WMS & Formation Entrepôt</span>
+          <span class="brand-subtitle">D365 WMS</span>
+        </div>
+      </div>
+      <div class="d365-context-badge" title="Hiérarchie organisationnelle Dynamics 365">
+        <div class="d365-context-item hide-mobile">
+          <span class="d365-context-label">Entité</span>
+          <span class="d365-context-val">FR01</span>
+        </div>
+        <div class="d365-context-sep hide-mobile">/</div>
+        <div class="d365-context-item hide-mobile">
+          <span class="d365-context-label">Site</span>
+          <span class="d365-context-val">Ivry</span>
+        </div>
+        <div class="d365-context-sep hide-mobile">/</div>
+        <div class="d365-context-item">
+          <span class="d365-context-label">Entrepôt</span>
+          <select class="d365-wh-select" id="select-active-warehouse" data-action="switch-warehouse" aria-label="Entrepôt actif">
+            <option value="WH-MAIN" selected>WH-MAIN (Principal)</option>
+            <option value="WH-RETAIL">WH-RETAIL (Magasin)</option>
+          </select>
         </div>
       </div>
       <div class="header-actions">

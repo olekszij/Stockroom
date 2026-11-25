@@ -1,39 +1,85 @@
 "use strict";
 
     /* ==========================================================================
-       SECTION 1: DATA SEED
+       SECTION 1: DATA SEED (Dynamics 365 Supply Chain Management Data Model)
        ========================================================================== */
+    const STATE_VERSION = 2;
+
+    const D365_SETUP = {
+      legalEntities: [
+        { id: "FR01", name: "Maison Lumière France SAS", currency: "EUR" }
+      ],
+      sites: [
+        { id: "SITE-01", name: "Ivry-sur-Seine", legalEntityId: "FR01" }
+      ],
+      warehouses: [
+        { id: "WH-MAIN", name: "Entrepôt Principal (Distribution)", siteId: "SITE-01", isWmsEnabled: true },
+        { id: "WH-RETAIL", name: "Entrepôt Magasin / Détail", siteId: "SITE-01", isWmsEnabled: true }
+      ],
+      locationTypes: [
+        { id: "RECEP", name: "Quai de Réception", isDock: true },
+        { id: "BULK",  name: "Stockage Masse (Palettes)", isDock: false },
+        { id: "PICK",  name: "Prélèvement (Picking détail)", isDock: false },
+        { id: "EXPED", name: "Quai d'Expédition", isDock: true }
+      ],
+      locationProfiles: [
+        { id: "PROF-RECEP", name: "Quai Réception Docks", allowMixedItems: true, requireLP: true, capacityType: "unlimited" },
+        { id: "PROF-BULK",  name: "Rack Masse Palette", allowMixedItems: false, requireLP: true, capacityType: "quantity", maxCapacity: 200 },
+        { id: "PROF-PICK",  name: "Alvéole Picking Dynamique", allowMixedItems: true, requireLP: false, capacityType: "quantity", maxCapacity: 600 },
+        { id: "PROF-EXPED", name: "Quai Expédition Docks", allowMixedItems: true, requireLP: true, capacityType: "unlimited" }
+      ],
+      zoneGroups: [
+        { id: "ZG-INBOUND", name: "Flux Entrant" },
+        { id: "ZG-STORAGE", name: "Stockage Réserve & Picking" },
+        { id: "ZG-OUTBOUND", name: "Flux Sortant" }
+      ],
+      zones: [
+        { id: "ZONE-RECEP", name: "Zone Réception Quai", group: "ZG-INBOUND" },
+        { id: "ZONE-BULK",  name: "Zone Réserve Palettes A", group: "ZG-STORAGE" },
+        { id: "ZONE-PICK",  name: "Zone Picking Dynamique B", group: "ZG-STORAGE" },
+        { id: "ZONE-EXPED", name: "Zone Expédition Quai", group: "ZG-OUTBOUND" }
+      ]
+    };
+
     const SEED_DATA = {
+      version: STATE_VERSION,
       items: [
-        { sku: "CAF-1KG", name: "Café en grains 1 kg", zone: "A" },
-        { sku: "CHO-500", name: "Chocolat en poudre 500 g", zone: "A" },
-        { sku: "SIR-VAN", name: "Sirop de vanille 1 L", zone: "A" },
-        { sku: "AVO-1L",  name: "Lait d'avoine 1 L", zone: "A" },
-        { sku: "GOB-12",  name: "Gobelets carton 12 oz", zone: "B" },
-        { sku: "COUV-12", name: "Couvercles gobelets 12 oz", zone: "B" }
+        { sku: "CAF-1KG", name: "Café en grains 1 kg", zone: "ZONE-BULK", tracking: "batch", unit: "KG", unitWeight: 1.0, unitVol: 0.002 },
+        { sku: "CHO-500", name: "Chocolat en poudre 500 g", zone: "ZONE-BULK", tracking: "batch", unit: "BOITE", unitWeight: 0.5, unitVol: 0.001 },
+        { sku: "SIR-VAN", name: "Sirop de vanille 1 L", zone: "ZONE-BULK", tracking: "batch", unit: "BOUT", unitWeight: 1.2, unitVol: 0.0015 },
+        { sku: "AVO-1L",  name: "Lait d'avoine 1 L", zone: "ZONE-BULK", tracking: "batch", unit: "BRIQUE", unitWeight: 1.0, unitVol: 0.0012 },
+        { sku: "GOB-12",  name: "Gobelets carton 12 oz", zone: "ZONE-PICK", tracking: "none", unit: "CARTON", unitWeight: 0.2, unitVol: 0.005 },
+        { sku: "COUV-12", name: "Couvercles gobelets 12 oz", zone: "ZONE-PICK", tracking: "none", unit: "CARTON", unitWeight: 0.1, unitVol: 0.003 }
       ],
       locations: [
-        { code: "A-01", zone: "A", capacity: 200, isDock: false },
-        { code: "A-02", zone: "A", capacity: 200, isDock: false },
-        { code: "A-03", zone: "A", capacity: 200, isDock: false },
-        { code: "A-04", zone: "A", capacity: 200, isDock: false },
-        { code: "B-01", zone: "B", capacity: 600, isDock: false },
-        { code: "B-02", zone: "B", capacity: 600, isDock: false },
-        { code: "RECEPTION",  zone: "DOCK", capacity: Infinity, isDock: true },
-        { code: "EXPEDITION", zone: "DOCK", capacity: Infinity, isDock: true }
+        // WH-MAIN Locations (Aisle-Rack-Level format)
+        { code: "RECEPTION",  warehouse: "WH-MAIN", zone: "ZONE-RECEP", type: "RECEP", profile: "PROF-RECEP", capacity: Infinity, isDock: true },
+        { code: "EXPEDITION", warehouse: "WH-MAIN", zone: "ZONE-EXPED", type: "EXPED", profile: "PROF-EXPED", capacity: Infinity, isDock: true },
+        { code: "A-01-01",    warehouse: "WH-MAIN", zone: "ZONE-BULK",  type: "BULK",  profile: "PROF-BULK",  capacity: 200, isDock: false },
+        { code: "A-01-02",    warehouse: "WH-MAIN", zone: "ZONE-BULK",  type: "BULK",  profile: "PROF-BULK",  capacity: 200, isDock: false },
+        { code: "A-02-01",    warehouse: "WH-MAIN", zone: "ZONE-BULK",  type: "BULK",  profile: "PROF-BULK",  capacity: 200, isDock: false },
+        { code: "A-02-02",    warehouse: "WH-MAIN", zone: "ZONE-BULK",  type: "BULK",  profile: "PROF-BULK",  capacity: 200, isDock: false },
+        { code: "B-01-01",    warehouse: "WH-MAIN", zone: "ZONE-PICK",  type: "PICK",  profile: "PROF-PICK",  capacity: 600, isDock: false },
+        { code: "B-01-02",    warehouse: "WH-MAIN", zone: "ZONE-PICK",  type: "PICK",  profile: "PROF-PICK",  capacity: 600, isDock: false },
+        // WH-RETAIL Locations
+        { code: "RECEP-RET",  warehouse: "WH-RETAIL", zone: "ZONE-RECEP", type: "RECEP", profile: "PROF-RECEP", capacity: Infinity, isDock: true },
+        { code: "EXPED-RET",  warehouse: "WH-RETAIL", zone: "ZONE-EXPED", type: "EXPED", profile: "PROF-EXPED", capacity: Infinity, isDock: true },
+        { code: "R-01-01",    warehouse: "WH-RETAIL", zone: "ZONE-PICK",  type: "PICK",  profile: "PROF-PICK",  capacity: 150, isDock: false },
+        { code: "R-01-02",    warehouse: "WH-RETAIL", zone: "ZONE-PICK",  type: "PICK",  profile: "PROF-PICK",  capacity: 150, isDock: false }
       ],
       stock: [
-        { sku: "CAF-1KG", location: "A-01", qty: 120 },
-        { sku: "CAF-1KG", location: "A-02", qty: 60 },
-        { sku: "CHO-500", location: "A-03", qty: 80 },
-        { sku: "AVO-1L",  location: "A-03", qty: 90 },
-        { sku: "SIR-VAN", location: "A-04", qty: 40 },
-        { sku: "GOB-12",  location: "B-01", qty: 300 },
-        { sku: "COUV-12", location: "B-02", qty: 250 }
+        { id: "STK-1", sku: "CAF-1KG", site: "SITE-01", warehouse: "WH-MAIN", location: "A-01-01", licensePlate: "LP-1001", batch: "LOT-CAF-01", expDate: "2026-12-31", status: "Disponible", qty: 120, reservedQty: 0 },
+        { id: "STK-2", sku: "CAF-1KG", site: "SITE-01", warehouse: "WH-MAIN", location: "A-01-02", licensePlate: "LP-1002", batch: "LOT-CAF-02", expDate: "2026-09-30", status: "Disponible", qty: 60, reservedQty: 0 },
+        { id: "STK-3", sku: "CHO-500", site: "SITE-01", warehouse: "WH-MAIN", location: "A-02-01", licensePlate: "LP-1003", batch: "LOT-CHO-01", expDate: "2026-11-15", status: "Disponible", qty: 80, reservedQty: 0 },
+        { id: "STK-4", sku: "AVO-1L",  site: "SITE-01", warehouse: "WH-MAIN", location: "A-02-02", licensePlate: "LP-1004", batch: "LOT-AVO-01", expDate: "2026-10-31", status: "Disponible", qty: 90, reservedQty: 0 },
+        { id: "STK-5", sku: "SIR-VAN", site: "SITE-01", warehouse: "WH-MAIN", location: "A-02-02", licensePlate: "LP-1005", batch: "LOT-SIR-01", expDate: "2027-01-15", status: "Disponible", qty: 40, reservedQty: 0 },
+        { id: "STK-6", sku: "GOB-12",  site: "SITE-01", warehouse: "WH-MAIN", location: "B-01-01", licensePlate: "LP-1006", batch: null, expDate: null, status: "Disponible", qty: 300, reservedQty: 0 },
+        { id: "STK-7", sku: "COUV-12", site: "SITE-01", warehouse: "WH-MAIN", location: "B-01-02", licensePlate: "LP-1007", batch: null, expDate: null, status: "Disponible", qty: 250, reservedQty: 0 }
       ],
       purchaseOrders: [
         {
           id: "PO-1001",
+          warehouse: "WH-MAIN",
           supplier: "Torréfaction Artisanale des Alpes",
           lines: [
             { sku: "CAF-1KG", ordered: 150, received: 0 },
@@ -42,6 +88,7 @@
         },
         {
           id: "PO-1002",
+          warehouse: "WH-MAIN",
           supplier: "EcoEmballages Direct",
           lines: [
             { sku: "GOB-12", ordered: 500, received: 0 },
@@ -52,6 +99,7 @@
       salesOrders: [
         {
           id: "SO-2001",
+          warehouse: "WH-MAIN",
           customer: "Café Central de Paris",
           status: "open", // open | released | picked | shipped
           lines: [
@@ -62,6 +110,7 @@
         },
         {
           id: "SO-2002",
+          warehouse: "WH-MAIN",
           customer: "Bistrot du Port Maritime",
           status: "open",
           lines: [
@@ -73,6 +122,7 @@
         },
         {
           id: "SO-2003",
+          warehouse: "WH-MAIN",
           customer: "Grand Hôtel de la Plage",
           status: "open",
           lines: [
@@ -81,14 +131,21 @@
           shortages: {}
         }
       ],
-      tasks: [], // WorkTask: { id, type: 'putaway'|'pick', sku, qty, from, to, ref, done }
+      tasks: [], // WorkTask: { id, type: 'putaway'|'pick', sku, qty, from, to, ref, licensePlate, batch, done }
       movementLogs: [
-        { time: "08:00:00", text: "Initialisation du stock de démonstration." }
+        { time: "08:00:00", text: "Initialisation du stock de démonstration D365 WMS (WH-MAIN)." }
       ]
     };
 
     function createFreshWarehouseState() {
       return JSON.parse(JSON.stringify(SEED_DATA));
+    }
+
+    function migrateWarehouseState(saved) {
+      if (!saved || typeof saved !== "object" || saved.version !== STATE_VERSION || !Array.isArray(saved.stock)) {
+        return createFreshWarehouseState();
+      }
+      return saved;
     }
 
 
@@ -99,6 +156,12 @@
     function generateTaskId() {
       _taskCounter++;
       return "TSK-" + _taskCounter;
+    }
+
+    let _lpCounter = 1007;
+    function generateLicensePlate() {
+      _lpCounter++;
+      return "LP-" + _lpCounter;
     }
 
     function getNowTimeStr() {
@@ -118,18 +181,76 @@
       }
     }
 
-    // Helper: Add or subtract stock at a location
-    function adjustStock(state, sku, locationCode, deltaQty) {
-      let row = state.stock.find(s => s.sku === sku && s.location === locationCode);
-      if (!row) {
-        if (deltaQty > 0) {
-          state.stock.push({ sku, location: locationCode, qty: deltaQty });
+    // Helper: Add or subtract stock at a location with D365 dimensions
+    function adjustStock(state, sku, locationCode, deltaQty, options = {}) {
+      const loc = state.locations.find(l => l.code === locationCode);
+      const wh = options.warehouse || (loc ? loc.warehouse : "WH-MAIN");
+      const site = options.site || "SITE-01";
+      const lp = options.licensePlate || (options.requireLP ? generateLicensePlate() : null);
+      const status = options.status || "Disponible";
+      const batch = options.batch !== undefined ? options.batch : null;
+      const expDate = options.expDate !== undefined ? options.expDate : null;
+
+      if (deltaQty > 0) {
+        // Find matching row or create new
+        let row = state.stock.find(s => 
+          s.sku === sku && 
+          s.location === locationCode && 
+          (!lp || s.licensePlate === lp) &&
+          s.status === status &&
+          s.batch === batch
+        );
+        if (row) {
+          row.qty += deltaQty;
+        } else {
+          state.stock.push({
+            id: "STK-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+            sku: sku,
+            site: site,
+            warehouse: wh,
+            location: locationCode,
+            licensePlate: lp || generateLicensePlate(),
+            batch: batch,
+            expDate: expDate,
+            status: status,
+            qty: deltaQty,
+            reservedQty: 0
+          });
         }
-      } else {
-        row.qty += deltaQty;
+      } else if (deltaQty < 0) {
+        let toDeduct = Math.abs(deltaQty);
+        // Find matching rows at location
+        const matching = state.stock.filter(s => 
+          s.sku === sku && 
+          s.location === locationCode && 
+          (!options.licensePlate || s.licensePlate === options.licensePlate)
+        );
+        for (const r of matching) {
+          if (toDeduct <= 0) break;
+          const take = Math.min(r.qty, toDeduct);
+          r.qty -= take;
+          toDeduct -= take;
+        }
       }
       // Remove zero or negative rows
       state.stock = state.stock.filter(s => s.qty > 0);
+    }
+
+    // Change Inventory Status on a License Plate (Disponible / Bloqué / Quarantaine)
+    function changeInventoryStatus(state, licensePlate, newStatus) {
+      const rows = state.stock.filter(s => s.licensePlate === licensePlate);
+      if (rows.length === 0) return { error: `Plaque ${licensePlate} introuvable.` };
+      
+      const hasReservation = rows.some(r => (r.reservedQty || 0) > 0);
+      if (hasReservation && newStatus !== "Disponible") {
+        return { error: `Impossible de bloquer ${licensePlate} : du stock est réservé pour une commande.` };
+      }
+
+      for (const r of rows) {
+        r.status = newStatus;
+      }
+      addLog(state, `Statut d'inventaire mis à jour pour ${licensePlate} : "${newStatus}".`);
+      return { success: true };
     }
 
     // Free space in a non-dock location = capacity - used - planned in open putaways
@@ -161,11 +282,12 @@
     // Candidate locations: same zone as item, non-dock.
     // Sort: locations already holding this sku first, then by most free space.
     // Split quantity across locations. If space runs out, create task with empty destination.
-    function planPutaway(state, sku, qty, poId) {
+    function planPutaway(state, sku, qty, poId, options = {}) {
       const item = state.items.find(i => i.sku === sku);
       if (!item) return [];
 
-      const candidates = state.locations.filter(l => !l.isDock && l.zone === item.zone);
+      const targetWh = options.warehouse || "WH-MAIN";
+      const candidates = state.locations.filter(l => !l.isDock && l.warehouse === targetWh && l.zone === item.zone);
       
       const scored = candidates.map(loc => {
         const skuQtyInLoc = state.stock
@@ -189,6 +311,7 @@
 
       const newTasks = [];
       let remaining = qty;
+      const lp = options.licensePlate || generateLicensePlate();
 
       for (const cand of scored) {
         if (remaining <= 0) break;
@@ -200,6 +323,7 @@
           type: "putaway",
           sku: sku,
           qty: take,
+          licensePlate: lp,
           from: "RECEPTION",
           to: cand.code,
           ref: poId,
@@ -216,6 +340,7 @@
           type: "putaway",
           sku: sku,
           qty: remaining,
+          licensePlate: lp,
           from: "RECEPTION",
           to: "",
           ref: poId,
@@ -227,7 +352,7 @@
     }
 
     // 1. receive(po, lineIndex, qty)
-    // Clamps qty to what remains, adds stock to RECEPTION, creates putaway tasks, logs it.
+    // Clamps qty to what remains, creates LP on RECEPTION, creates putaway tasks, logs it.
     function receive(state, poId, lineIndex, requestedQty) {
       const po = state.purchaseOrders.find(p => p.id === poId);
       if (!po || !po.lines[lineIndex]) return { state, error: "Commande ou ligne introuvable." };
@@ -240,19 +365,33 @@
         return { state, error: "Quantité à réceptionner invalide ou commande déjà soldée." };
       }
 
-      line.received += actualQty;
-      adjustStock(state, line.sku, "RECEPTION", actualQty);
+      const lp = generateLicensePlate();
+      const item = state.items.find(i => i.sku === line.sku);
+      const batch = item && item.tracking === "batch" ? "LOT-" + line.sku.split("-")[0] + "-REC" : null;
+      const expDate = item && item.tracking === "batch" ? "2027-06-30" : null;
 
-      const putawayTasks = planPutaway(state, line.sku, actualQty, po.id);
+      line.received += actualQty;
+      adjustStock(state, line.sku, "RECEPTION", actualQty, {
+        warehouse: po.warehouse || "WH-MAIN",
+        licensePlate: lp,
+        batch: batch,
+        expDate: expDate,
+        status: "Disponible"
+      });
+
+      const putawayTasks = planPutaway(state, line.sku, actualQty, po.id, {
+        warehouse: po.warehouse || "WH-MAIN",
+        licensePlate: lp
+      });
       state.tasks.push(...putawayTasks);
 
-      addLog(state, `Réception de ${actualQty}x ${line.sku} sur le quai RECEPTION (PO: ${po.id}).`);
+      addLog(state, `Réception de ${actualQty}x ${line.sku} (Plaque LP: ${lp}) sur RECEPTION (PO: ${po.id}).`);
 
       return { state, error: null };
     }
 
     // 3. confirmPutaway(task, chosenDest)
-    // Refuses if destination is empty or lacks free space, otherwise moves stock RECEPTION -> dest.
+    // Refuses if destination is empty or lacks free space, otherwise moves LP RECEPTION -> dest.
     function confirmPutaway(state, taskId, chosenDest) {
       const task = state.tasks.find(t => t.id === taskId);
       if (!task || task.done) return { state, error: "Tâche introuvable ou déjà terminée." };
@@ -274,64 +413,89 @@
       }
 
       // Check stock at RECEPTION
-      const recStock = state.stock.find(s => s.location === "RECEPTION" && s.sku === task.sku);
+      const recStock = state.stock.find(s => s.location === "RECEPTION" && s.sku === task.sku && (!task.licensePlate || s.licensePlate === task.licensePlate));
       if (!recStock || recStock.qty < task.qty) {
         return { state, error: `Stock insuffisant sur le quai RECEPTION pour ${task.sku}.` };
       }
 
-      // Move stock
-      adjustStock(state, task.sku, "RECEPTION", -task.qty);
-      adjustStock(state, task.sku, dest, task.qty);
+      // Move stock maintaining LP, batch, and status
+      const savedLp = recStock.licensePlate;
+      const savedBatch = recStock.batch;
+      const savedExp = recStock.expDate;
+      const savedStatus = recStock.status;
+
+      adjustStock(state, task.sku, "RECEPTION", -task.qty, { licensePlate: savedLp });
+      adjustStock(state, task.sku, dest, task.qty, {
+        licensePlate: savedLp,
+        batch: savedBatch,
+        expDate: savedExp,
+        status: savedStatus
+      });
 
       task.to = dest;
       task.done = true;
 
-      addLog(state, `Rangement terminé : ${task.qty}x ${task.sku} rangés dans ${dest} (Tâche: ${task.id}).`);
+      addLog(state, `Rangement terminé : ${task.qty}x ${task.sku} (LP: ${savedLp}) rangés dans ${dest} (Tâche: ${task.id}).`);
       return { state, error: null };
     }
 
     // 4. releaseOrder(so)
-    // For each line, allocate from non-dock locations. Available = on hand - qty reserved by open pick tasks.
-    // Take from locations with the least available quantity first (to empty small locations).
-    // Create pick tasks to EXPEDITION. If shortage, record shortage per sku. Status -> released.
+    // For each line, allocate from available non-dock stock (status === 'Disponible').
+    // Sort: FEFO (First Expired, First Out) then least available quantity first.
+    // Create pick tasks to EXPEDITION with hard reservation. If shortage, record shortage per sku.
     function releaseOrder(state, soId) {
       const so = state.salesOrders.find(s => s.id === soId);
       if (!so) return { state, error: "Commande client introuvable." };
       if (so.status !== "open") return { state, error: "Cette commande a déjà été lancée." };
 
       so.shortages = {};
+      const wh = so.warehouse || "WH-MAIN";
 
       for (const line of so.lines) {
         let needed = line.qty;
 
-        // Find candidate non-dock locations with available stock
+        // Find candidate stock rows with available stock (status === 'Disponible')
         const candidates = [];
         for (const loc of state.locations) {
-          if (loc.isDock) continue;
-          const onHand = state.stock
-            .filter(s => s.location === loc.code && s.sku === line.sku)
-            .reduce((sum, s) => sum + s.qty, 0);
-          const reserved = state.tasks
-            .filter(t => t.type === "pick" && !t.done && t.sku === line.sku && t.from === loc.code)
-            .reduce((sum, t) => sum + t.qty, 0);
-          const available = Math.max(0, onHand - reserved);
+          if (loc.isDock || loc.warehouse !== wh) continue;
+          
+          const availableRows = state.stock.filter(s => 
+            s.location === loc.code && 
+            s.sku === line.sku && 
+            s.status === "Disponible" && 
+            (s.qty - (s.reservedQty || 0)) > 0
+          );
 
-          if (available > 0) {
-            candidates.push({ code: loc.code, available });
+          for (const row of availableRows) {
+            candidates.push({
+              code: loc.code,
+              row: row,
+              expDate: row.expDate || "9999-12-31",
+              available: row.qty - (row.reservedQty || 0)
+            });
           }
         }
 
-        // Sort: least available quantity first to empty small locations
-        candidates.sort((a, b) => a.available - b.available);
+        // Sort: FEFO (First Expired, First Out) first, then least available quantity first
+        candidates.sort((a, b) => {
+          if (a.expDate !== b.expDate) {
+            return a.expDate.localeCompare(b.expDate);
+          }
+          return a.available - b.available;
+        });
 
         for (const cand of candidates) {
           if (needed <= 0) break;
           const take = Math.min(needed, cand.available);
+          cand.row.reservedQty = (cand.row.reservedQty || 0) + take;
+
           state.tasks.push({
             id: generateTaskId(),
             type: "pick",
             sku: line.sku,
             qty: take,
+            licensePlate: cand.row.licensePlate,
+            batch: cand.row.batch,
             from: cand.code,
             to: "EXPEDITION",
             ref: so.id,
@@ -352,7 +516,6 @@
       } else {
         addLog(state, `Préparation lancée pour commande ${so.id} (Tâches de prélèvement créées).`);
       }
-
       return { state, error: null };
     }
 
@@ -362,13 +525,19 @@
       const task = state.tasks.find(t => t.id === taskId);
       if (!task || task.done) return { state, error: "Tâche de prélèvement introuvable ou déjà terminée." };
 
-      const fromStock = state.stock.find(s => s.location === task.from && s.sku === task.sku);
+      const fromStock = state.stock.find(s => s.location === task.from && s.sku === task.sku && (!task.licensePlate || s.licensePlate === task.licensePlate));
       if (!fromStock || fromStock.qty < task.qty) {
         return { state, error: `Stock physique insuffisant en ${task.from} pour ${task.sku}.` };
       }
 
-      adjustStock(state, task.sku, task.from, -task.qty);
-      adjustStock(state, task.sku, "EXPEDITION", task.qty);
+      fromStock.reservedQty = Math.max(0, (fromStock.reservedQty || 0) - task.qty);
+      adjustStock(state, task.sku, task.from, -task.qty, { licensePlate: task.licensePlate });
+      adjustStock(state, task.sku, "EXPEDITION", task.qty, { 
+        licensePlate: task.licensePlate, 
+        batch: task.batch, 
+        status: "Disponible" 
+      });
+
       task.done = true;
 
       // Check if all pick tasks for this SO are completed
@@ -379,7 +548,7 @@
         so.status = "picked";
         addLog(state, `Prélèvement terminé pour la commande ${so.id} (Prête pour expédition).`);
       } else {
-        addLog(state, `Prélèvement confirmé : ${task.qty}x ${task.sku} depuis ${task.from} vers EXPEDITION.`);
+        addLog(state, `Prélèvement confirmé : ${task.qty}x ${task.sku} (LP: ${task.licensePlate || 'N/A'}) depuis ${task.from} vers EXPEDITION.`);
       }
 
       return { state, error: null };
@@ -1309,12 +1478,53 @@
       `;
     }
 
-    // 5. Stock View
-    function renderStockView(state) {
+    // 5. Stock View (D365 On-hand by Dimensions: Warehouse x Location x License Plate x Batch x Status)
+    function renderStockView(state, uiState) {
+      const activeWh = (uiState && uiState.stockFilterWarehouse) || "ALL";
+      const activeStatus = (uiState && uiState.stockFilterStatus) || "ALL";
+
+      // Filter stock rows
+      const filteredStock = state.stock.filter(s => {
+        if (activeWh !== "ALL" && s.warehouse !== activeWh) return false;
+        if (activeStatus !== "ALL" && s.status !== activeStatus) return false;
+        return true;
+      });
+
+      // KPI metrics
+      const totalPhysical = filteredStock.reduce((sum, s) => sum + s.qty, 0);
+      const totalReserved = filteredStock.reduce((sum, s) => sum + (s.reservedQty || 0), 0);
+      const totalAvailable = filteredStock.reduce((sum, s) => sum + (s.status === "Disponible" ? Math.max(0, s.qty - (s.reservedQty || 0)) : 0), 0);
+      const totalBlocked = filteredStock.reduce((sum, s) => sum + (s.status !== "Disponible" ? s.qty : 0), 0);
+      const distinctLPs = new Set(filteredStock.map(s => s.licensePlate)).size;
+
       return `
+        <!-- KPI Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-yellow);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">${getIcon("box")} Stock Physique Total</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #713f12;">${totalPhysical} <span style="font-size: 13px; font-weight: 700;">unités</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-mint);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #14532d;">${getIcon("check-circle")} Disponible à la vente</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #14532d;">${totalAvailable} <span style="font-size: 13px; font-weight: 700;">unités</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-blue);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0c4a6e;">${getIcon("clipboard")} Réservé (Commandes)</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #0c4a6e;">${totalReserved} <span style="font-size: 13px; font-weight: 700;">unités</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-coral);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #881337;">${getIcon("alert")} Bloqué / Contrôle</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #881337;">${totalBlocked} <span style="font-size: 13px; font-weight: 700;">unités</span></div>
+          </div>
+          <div class="card" style="padding: 12px 16px; margin: 0; background-color: var(--pastel-lavender);">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #4c1d95;">${getIcon("package")} Plaques (LP) Actives</div>
+            <div class="num" style="font-size: 24px; font-weight: 900; color: #4c1d95;">${distinctLPs} <span style="font-size: 13px; font-weight: 700;">palettes</span></div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
-            <span class="card-title">${getIcon("box")} État du stock par emplacement</span>
+            <span class="card-title">${getIcon("box")} Stock disponible par dimensions D365</span>
             <div>
               <button class="btn btn-danger btn-sm" data-action="reset-demo" title="Réinitialiser les données de l'entrepôt à l'état initial">
                 ${getIcon("alert")} Réinitialiser les données de démo
@@ -1323,50 +1533,97 @@
           </div>
           <div class="card-body">
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-              Visualisation complète des stocks. Remarque : réinitialiser les données de démo ne réinitialise JAMAIS votre progression pédagogique dans la formation.
+              Dans Dynamics 365, le stock disponible (On-hand) est suivi selon 7 dimensions clés : <strong>Article × Site × Entrepôt × Emplacement × License Plate (LP) × Lot × Statut d'inventaire</strong>.
             </p>
+
+            <!-- Filter Controls -->
+            <div style="background-color: var(--bg-surface-subtle); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="filter-stock-wh" style="font-weight: 700; font-size: 12px;">Entrepôt :</label>
+                  <select id="filter-stock-wh" class="input-select" data-action="filter-stock-wh" style="font-size: 12px; padding: 4px 8px;">
+                    <option value="ALL" ${activeWh === 'ALL' ? 'selected' : ''}>Tous les entrepôts</option>
+                    <option value="WH-MAIN" ${activeWh === 'WH-MAIN' ? 'selected' : ''}>WH-MAIN (Principal)</option>
+                    <option value="WH-RETAIL" ${activeWh === 'WH-RETAIL' ? 'selected' : ''}>WH-RETAIL (Magasin)</option>
+                  </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="filter-stock-status" style="font-weight: 700; font-size: 12px;">Statut d'inventaire :</label>
+                  <select id="filter-stock-status" class="input-select" data-action="filter-stock-status" style="font-size: 12px; padding: 4px 8px;">
+                    <option value="ALL" ${activeStatus === 'ALL' ? 'selected' : ''}>Tous les statuts</option>
+                    <option value="Disponible" ${activeStatus === 'Disponible' ? 'selected' : ''}>Disponible (Réservable)</option>
+                    <option value="Bloqué" ${activeStatus === 'Bloqué' ? 'selected' : ''}>Bloqué (Qualité)</option>
+                    <option value="Quarantaine" ${activeStatus === 'Quarantaine' ? 'selected' : ''}>Quarantaine</option>
+                  </select>
+                </div>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 700;">
+                Lignes affichées : <strong>${filteredStock.length}</strong>
+              </div>
+            </div>
 
             <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th>Entrepôt</th>
                     <th>Emplacement</th>
-                    <th>Type</th>
-                    <th>Zone</th>
-                    <th>SKU</th>
-                    <th>Désignation article</th>
-                    <th style="text-align: right;">Quantité</th>
-                    <th style="text-align: right;">Capacité max</th>
+                    <th>Plaque (License Plate)</th>
+                    <th>Article (SKU)</th>
+                    <th>Lot & DLUO (FEFO)</th>
+                    <th>Statut</th>
+                    <th style="text-align: right;">Physique</th>
+                    <th style="text-align: right;">Réservé</th>
+                    <th style="text-align: right;">Disponible</th>
+                    <th style="text-align: center;">Action Statut</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${state.locations.map(loc => {
-                    const rows = state.stock.filter(s => s.location === loc.code);
-                    if (rows.length === 0) {
-                      return `
-                        <tr>
-                          <td><strong>${loc.code}</strong></td>
-                          <td>${loc.isDock ? '<span class="badge badge-primary">Quai</span>' : '<span class="badge badge-neutral">Rayonnage</span>'}</td>
-                          <td>${loc.isDock ? '-' : loc.zone}</td>
-                          <td colspan="3" style="color: var(--text-muted); font-style: italic;">(Emplacement vide)</td>
-                          <td class="num" style="text-align: right;">${loc.isDock ? 'Illimité' : loc.capacity}</td>
-                        </tr>
-                      `;
-                    }
-                    return rows.map((r, rIdx) => {
-                      const it = state.items.find(i => i.sku === r.sku);
-                      return `
-                        <tr>
-                          ${rIdx === 0 ? `<td rowspan="${rows.length}"><strong>${loc.code}</strong></td>` : ''}
-                          ${rIdx === 0 ? `<td rowspan="${rows.length}">${loc.isDock ? '<span class="badge badge-primary">Quai</span>' : '<span class="badge badge-neutral">Rayonnage</span>'}</td>` : ''}
-                          ${rIdx === 0 ? `<td rowspan="${rows.length}">${loc.isDock ? '-' : loc.zone}</td>` : ''}
-                          <td><strong>${r.sku}</strong></td>
-                          <td>${it ? it.name : ''}</td>
-                          <td class="num" style="text-align: right; font-weight: 700;">${r.qty}</td>
-                          ${rIdx === 0 ? `<td class="num" rowspan="${rows.length}" style="text-align: right;">${loc.isDock ? 'Illimité' : loc.capacity}</td>` : ''}
-                        </tr>
-                      `;
-                    }).join('');
+                  ${filteredStock.length === 0 ? `
+                    <tr>
+                      <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 24px; font-style: italic;">
+                        Aucun stock ne correspond aux filtres sélectionnés.
+                      </td>
+                    </tr>
+                  ` : filteredStock.map(s => {
+                    const it = state.items.find(i => i.sku === s.sku);
+                    const loc = state.locations.find(l => l.code === s.location);
+                    const avail = s.status === "Disponible" ? Math.max(0, s.qty - (s.reservedQty || 0)) : 0;
+                    const statusClass = s.status === "Disponible" ? "badge-status-disponible" : (s.status === "Bloqué" ? "badge-status-bloque" : "badge-status-quarantaine");
+                    return `
+                      <tr>
+                        <td><span class="badge badge-neutral">${s.warehouse || 'WH-MAIN'}</span></td>
+                        <td>
+                          <strong>${s.location}</strong>
+                          <div style="font-size: 10.5px; color: var(--text-muted);">${loc ? loc.type + ' / ' + loc.zone : ''}</div>
+                        </td>
+                        <td><span class="badge badge-lp">${s.licensePlate || 'N/A'}</span></td>
+                        <td>
+                          <strong>${s.sku}</strong>
+                          <div style="font-size: 11px; color: var(--text-muted);">${it ? it.name : ''}</div>
+                        </td>
+                        <td>
+                          ${s.batch ? `
+                            <span class="badge badge-batch">${s.batch}</span>
+                            <div style="font-size: 10px; color: var(--text-muted);">DLUO: ${s.expDate || '-'}</div>
+                          ` : `<span style="color: var(--text-muted); font-size: 11px;">Sans lot</span>`}
+                        </td>
+                        <td><span class="badge ${statusClass}">${s.status || 'Disponible'}</span></td>
+                        <td class="num" style="text-align: right; font-weight: 700;">${s.qty}</td>
+                        <td class="num" style="text-align: right; color: var(--text-muted);">${s.reservedQty || 0}</td>
+                        <td class="num" style="text-align: right; font-weight: 900; color: ${avail > 0 ? '#14532d' : '#881337'};">${avail}</td>
+                        <td style="text-align: center;">
+                          <button class="btn btn-secondary btn-sm" 
+                                  style="padding: 3px 8px; font-size: 11px;"
+                                  data-action="toggle-lp-status" 
+                                  data-lp="${s.licensePlate}" 
+                                  data-current-status="${s.status || 'Disponible'}"
+                                  title="Basculer le statut d'inventaire de cette plaque">
+                            ${s.status === 'Disponible' ? 'Bloquer' : 'Débloquer'}
+                          </button>
+                        </td>
+                      </tr>
+                    `;
                   }).join('')}
                 </tbody>
               </table>
@@ -1378,7 +1635,7 @@
 
     // 6. Inventaire View (Cycle Counting - Bonus Lesson 8)
     function renderInventaireView(state, uiState) {
-      const selectedLocCode = uiState.selectedCountLoc || "A-01";
+      const selectedLocCode = uiState.selectedCountLoc || "A-01-01";
       const selectedLoc = state.locations.find(l => l.code === selectedLocCode) || state.locations[0];
       const itemsInLoc = state.stock.filter(s => s.location === selectedLoc.code);
 
@@ -1530,7 +1787,7 @@
           viewHtml += renderExpeditionView(warehouseState);
           break;
         case "stock":
-          viewHtml += renderStockView(warehouseState);
+          viewHtml += renderStockView(warehouseState, uiState);
           break;
         case "inventaire":
           viewHtml += renderInventaireView(warehouseState, uiState);
@@ -1541,6 +1798,12 @@
 
       if (appContainer) {
         appContainer.innerHTML = viewHtml;
+      }
+
+      // Sync active warehouse select in header if present
+      const whSelect = document.getElementById("select-active-warehouse");
+      if (whSelect && whSelect.value !== uiState.activeWarehouse) {
+        whSelect.value = uiState.activeWarehouse;
       }
 
       // Restore Focus & Scroll
@@ -1568,8 +1831,11 @@
     let trainingState = createFreshTrainingState();
     let uiState = {
       activeTab: "formation",
+      activeWarehouse: "WH-MAIN",
+      stockFilterWarehouse: "ALL",
+      stockFilterStatus: "ALL",
       banner: null, // { type: 'danger'|'success'|'info', message: '' }
-      selectedCountLoc: "A-01",
+      selectedCountLoc: "A-01-01",
       mobileMenuOpen: false
     };
 
@@ -1866,11 +2132,45 @@
         renderApp();
         return;
       }
+
+      if (action === "toggle-lp-status") {
+        const lp = target.getAttribute("data-lp");
+        const currentStatus = target.getAttribute("data-current-status");
+        const nextStatus = currentStatus === "Disponible" ? "Bloqué" : "Disponible";
+        const res = changeInventoryStatus(warehouseState, lp, nextStatus);
+        if (res.error) {
+          showBanner("danger", res.error);
+        } else {
+          showBanner("info", `Plaque d'immatriculation ${lp} passée au statut "${nextStatus}".`);
+          saveState();
+        }
+        renderApp();
+        return;
+      }
     });
 
     document.addEventListener("change", function(e) {
       const target = e.target;
       const action = target.getAttribute("data-action");
+
+      if (action === "switch-warehouse") {
+        uiState.activeWarehouse = target.value;
+        showBanner("info", `Entrepôt actif sélectionné : ${target.value}`);
+        renderApp();
+        return;
+      }
+
+      if (action === "filter-stock-wh") {
+        uiState.stockFilterWarehouse = target.value;
+        renderApp();
+        return;
+      }
+
+      if (action === "filter-stock-status") {
+        uiState.stockFilterStatus = target.value;
+        renderApp();
+        return;
+      }
 
       if (action === "change-count-loc") {
         uiState.selectedCountLoc = target.value;
@@ -1939,10 +2239,10 @@
         assert("Receive clamp : la quantité reçue est bridée au restant dû (150)", poLine.received === 150);
 
         // Putaway planning on CAF-1KG 150 units:
-        // Zone A locations: A-01 (120/200, free 80), A-02 (60/200, free 140).
-        // Both hold CAF-1KG. Free space: A-02 has 140, A-01 has 80.
-        // Sorted candidate list: A-02 (free 140) then A-01 (free 80).
-        // Total tasks created should sum to 150 and split across A-02 and A-01.
+        // Zone BULK locations: A-01-01 (120/200, free 80), A-01-02 (60/200, free 140).
+        // Both hold CAF-1KG. Free space: A-01-02 has 140, A-01-01 has 80.
+        // Sorted candidate list: A-01-02 (free 140) then A-01-01 (free 80).
+        // Total tasks created should sum to 150 and split across A-01-02 and A-01-01.
         const putaways = st1.tasks.filter(t => t.type === "putaway" && t.sku === "CAF-1KG");
         const totalPlanned = putaways.reduce((s, t) => s + t.qty, 0);
         assert("Putaway split : la somme des tâches générées égale 150", totalPlanned === 150);
@@ -1963,17 +2263,17 @@
       // TEST SUITE 2: Release order takes from least-filled location first & shortage detection
       try {
         const st2 = createFreshWarehouseState();
-        // Seed stock for CAF-1KG: A-01 has 120, A-02 has 60.
+        // Seed stock for CAF-1KG: A-01-01 has 120, A-01-02 has 60.
         // SO-2001 orders 40 CAF-1KG.
-        // Least-filled location holding CAF-1KG is A-02 (60 < 120).
+        // Least-filled location holding CAF-1KG is A-01-02 (60 < 120).
         releaseOrder(st2, "SO-2001");
         const so1 = st2.salesOrders.find(s => s.id === "SO-2001");
         assert("Release order : statut devient 'released'", so1.status === "released");
 
         const coffeePick = st2.tasks.find(t => t.ref === "SO-2001" && t.type === "pick" && t.sku === "CAF-1KG");
-        assert("Release allocation : prélèvement depuis l'emplacement le moins rempli (A-02)", coffeePick && coffeePick.from === "A-02" && coffeePick.qty === 40);
+        assert("Release allocation : prélèvement depuis l'emplacement le moins rempli / FEFO (A-01-02)", coffeePick && coffeePick.from === "A-01-02" && coffeePick.qty === 40);
 
-        // SO-2003 asks for 100 CHO-500, but only 80 exist in A-03.
+        // SO-2003 asks for 100 CHO-500, but only 80 exist in A-02-01.
         releaseOrder(st2, "SO-2003");
         const so3 = st2.salesOrders.find(s => s.id === "SO-2003");
         assert("Shortage detection : rupture de 20 enregistrée pour CHO-500 sur SO-2003", so3.shortages && so3.shortages["CHO-500"] === 20);
@@ -2087,6 +2387,28 @@
         assert("Suite 3 exception", false, err.message);
       }
 
+      // TEST SUITE 4: D365 Dimensions & Inventory Status Rules
+      try {
+        const st4 = createFreshWarehouseState();
+        // 1. All stock lines have valid LP format
+        const allHaveLp = st4.stock.every(s => typeof s.licensePlate === "string" && s.licensePlate.startsWith("LP-"));
+        assert("License Plates : tous les enregistrements de stock possèdent un numéro LP", allHaveLp);
+
+        // 2. Blocked stock cannot be allocated/reserved
+        // Block LP-1002 (CAF-1KG 60 units in A-01-02)
+        changeInventoryStatus(st4, "LP-1002", "Bloqué");
+        const lp2Stock = st4.stock.find(s => s.licensePlate === "LP-1002");
+        assert("Statut de stock : LP-1002 passe au statut 'Bloqué'", lp2Stock && lp2Stock.status === "Bloqué");
+
+        // Release SO-2001 (needs 40 CAF-1KG)
+        // A-01-02 is blocked, so engine MUST allocate from available A-01-01 instead!
+        releaseOrder(st4, "SO-2001");
+        const pickTask = st4.tasks.find(t => t.ref === "SO-2001" && t.type === "pick" && t.sku === "CAF-1KG");
+        assert("Règle D365 : le stock 'Bloqué' est exclu des prélèvements (reporté sur A-01-01)", pickTask && pickTask.from === "A-01-01");
+      } catch (err) {
+        assert("Suite 4 exception", false, err.message);
+      }
+
       // Render Results Panel
       const panel = document.getElementById("test-panel");
       if (panel) {
@@ -2135,11 +2457,13 @@
         console.warn("Text scale storage read error :", e);
       }
 
-      // 2. Warehouse state restoration
+      // 2. Warehouse state restoration & D365 migration
       try {
         const rawW = localStorage.getItem(STORAGE_KEY_WAREHOUSE);
         if (rawW) {
-          warehouseState = JSON.parse(rawW);
+          warehouseState = migrateWarehouseState(JSON.parse(rawW));
+        } else {
+          warehouseState = createFreshWarehouseState();
         }
       } catch (e) {
         console.warn("Warehouse storage read error, defaulting to seed data :", e);

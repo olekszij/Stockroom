@@ -199,6 +199,68 @@ header.app-header {
   gap: 10px;
 }
 
+/* Dynamics 365 Organization Context Badge */
+.d365-context-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-surface-subtle);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.d365-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.d365-context-label {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+}
+
+.d365-context-val {
+  color: #0c4a6e;
+  background-color: var(--pastel-blue);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  font-weight: 800;
+}
+
+.d365-context-sep {
+  color: var(--border-color);
+  font-weight: 900;
+  opacity: 0.4;
+}
+
+.d365-wh-select {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: #713f12;
+  background-color: var(--pastel-yellow);
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 1.5px 1.5px 0px var(--shadow-color);
+  transition: transform 0.1s ease;
+}
+
+.d365-wh-select:focus-visible {
+  outline: 2px solid var(--border-color);
+}
+
 /* Tabs Bar */
 .nav-bar-container {
   max-width: 1200px;
@@ -541,6 +603,11 @@ table.data-table tbody tr:hover {
 .badge-warning { background-color: var(--pastel-yellow); color: #713f12; }
 .badge-danger { background-color: var(--pastel-coral); color: #881337; }
 .badge-neutral { background-color: var(--bg-surface-subtle); color: var(--text-main); }
+.badge-status-disponible { background-color: var(--pastel-mint); color: #14532d; }
+.badge-status-bloque { background-color: var(--pastel-coral); color: #881337; }
+.badge-status-quarantaine { background-color: var(--pastel-peach); color: #7c2d12; }
+.badge-lp { background-color: var(--pastel-lavender); color: #4c1d95; font-family: monospace; font-size: 11px; }
+.badge-batch { background-color: var(--pastel-yellow); color: #713f12; font-family: monospace; font-size: 11px; }
 
 /* ==========================================================================
    BUTTONS (Tactile 3D Click Feel)
