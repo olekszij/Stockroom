@@ -1562,7 +1562,6 @@
        ========================================================================== */
     const STORAGE_KEY_WAREHOUSE = "stockroom_warehouse_v1";
     const STORAGE_KEY_TRAINING = "stockroom_training_v1";
-    const STORAGE_KEY_THEME = "stockroom_theme_v1";
     const STORAGE_KEY_TEXT_SCALE = "stockroom_text_scale_v1";
 
     let warehouseState = createFreshWarehouseState();
@@ -1637,17 +1636,6 @@
         if (btn) {
           btn.innerHTML = (next === "large" ? `${getIcon("text-size")} <span class="hide-mobile">Grand</span>` : (next === "normal" ? `${getIcon("text-size")} <span class="hide-mobile">Compact</span>` : `${getIcon("text-size")} <span class="hide-mobile">Auto</span>`));
         }
-        return;
-      }
-
-      if (action === "toggle-theme") {
-        const root = document.documentElement;
-        const current = root.getAttribute("data-theme") || "auto";
-        let next = "dark";
-        if (current === "dark") next = "light";
-        else if (current === "light") next = "auto";
-        root.setAttribute("data-theme", next);
-        try { localStorage.setItem(STORAGE_KEY_THEME, next); } catch(e){}
         return;
       }
 
@@ -2053,15 +2041,11 @@
        SECTION 7: BOOT
        ========================================================================== */
     function boot() {
-      // 1. Theme and Text Scale restoration
+      // 1. Text Scale restoration & theme cleanup
       try {
-        const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
-        if (savedTheme) {
-          document.documentElement.setAttribute("data-theme", savedTheme);
-        }
-      } catch (e) {
-        console.warn("Theme storage read error :", e);
-      }
+        localStorage.removeItem("stockroom_theme_v1");
+        document.documentElement.removeAttribute("data-theme");
+      } catch (e) {}
 
       try {
         const savedScale = localStorage.getItem(STORAGE_KEY_TEXT_SCALE);
